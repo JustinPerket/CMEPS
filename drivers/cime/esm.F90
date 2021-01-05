@@ -1008,6 +1008,7 @@ contains
        end if
 #endif
 #ifdef LND_PRESENT
+       write (*, *) "JP debug in esm.F90"
        if (trim(compLabels(i)) .eq. 'LND') then
           call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, PetList=petlist, comp=child, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return

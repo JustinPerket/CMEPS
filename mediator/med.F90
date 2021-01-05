@@ -853,8 +853,11 @@ contains
      if (ChkErr(rc,__LINE__,u_FILE_u)) return
      is_local%wrap%vm = vm
 
+    write(*,*) "JP debug in med.F90" 
     ! Realize States
     do n = 1,ncomps
+
+      !write(*,*) "JP in med.F90: ",n, fldListFr(n), fldListTo(n)
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n), rc=rc)) then
 #if ESMF_VERSION_MINOR > 0
          call ESMF_StateSet(is_local%wrap%NStateImp(n), stateIntent=ESMF_StateIntent_Import, rc=rc)

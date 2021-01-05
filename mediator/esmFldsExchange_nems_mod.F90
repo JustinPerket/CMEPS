@@ -28,7 +28,9 @@ contains
     use esmFlds               , only : addfld => med_fldList_AddFld
     use esmFlds               , only : addmap => med_fldList_AddMap
     use esmFlds               , only : addmrg => med_fldList_AddMrg
-    use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
+! JP changed
+!    use esmflds               , only : compmed, compatm, compocn, compice, comprof, ncomps
+    use esmflds               , only : compmed, compatm, compocn, compice, complnd, comprof, ncomps
     use esmflds               , only : mapbilnr, mapconsf, mapconsd, mappatch
     use esmflds               , only : mapfcopy, mapnstod, mapnstod_consd, mapnstod_consf
     use esmflds               , only : coupling_mode, mapnames
@@ -249,7 +251,7 @@ contains
        call addmrg(fldListTo(compocn)%flds, 'Foxx_lwnet', &
              mrg_from1=compmed, mrg_fld1='Faox_lwup', mrg_type1='merge', mrg_fracname1='ofrac', &
              mrg_from2=compatm, mrg_fld2='Faxa_lwdn', mrg_type2='merge', mrg_fracname2='ofrac')
-
+       
        ! to ocn: sensible heat flux from mediator via auto merge
        call addfld(fldListTo(compocn)%flds, 'Faox_sen')
        call addmrg(fldListTo(compocn)%flds, 'Faox_sen', &
@@ -296,11 +298,19 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compice)%flds, trim(fldname))
+       call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
+       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy') ! JP add
     end do
     deallocate(flds)
 
+    ! JP add, put here tmp
+    !call addfld(fldListTo(complnd)%flds, 'Faxa_lwdn')
+    !call addmrg(fldListTo(complnd)%flds, 'Faxa_lwdn', mrg_from1=compatm, mrg_fld1='Faxa_lwdn', mrg_type1='copy')
+    ! JP end
+
+    
     ! to ice - state from atm
     ! to ice: height at the lowest model level from atm
     ! to ice: pressure at the lowest model level from atm
