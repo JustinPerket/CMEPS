@@ -78,6 +78,7 @@ contains
     !=====================================================================
 
     ! masks from components
+    call addfld(fldListFr(complnd)%flds, 'Sl_lfrin') ! JP add
     call addfld(fldListFr(compice)%flds, 'Si_imask')
     call addfld(fldListFr(compocn)%flds, 'So_omask')
     call addmap(fldListFr(compocn)%flds, 'So_omask', compice,  mapfcopy, 'unset', 'unset')
@@ -149,6 +150,16 @@ contains
     call addmap(fldListFr(compocn)%flds, 'So_t', compatm, maptype, 'ofrac', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'So_t', mrg_from1=compocn, mrg_fld1='So_t', mrg_type1='copy')
 
+    ! JP add. Am I doing this right?
+    ! to atm: unmerged from land
+    call addfld(fldListFr(complnd)%flds, 'Fall_lat')
+    call addfld(fldListTo(compatm)%flds, 'Fall_lat')
+    call addfld(fldListFr(complnd)%flds, 'Fall_lwup')
+    call addfld(fldListTo(compatm)%flds, 'Fall_lwup')
+    call addmrg(fldListTo(compatm)%flds, 'Fall_lat', mrg_from1=complnd, mrg_fld1='Fall_lat', mrg_type1='copy')
+    call addmrg(fldListTo(compatm)%flds, 'Fall_lwup', mrg_from1=complnd, mrg_fld1='Fall_lwup', mrg_type1='copy')
+    ! JP end
+    
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -298,10 +309,10 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compice)%flds, trim(fldname))
-       call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add
+       call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add lnd
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
-       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy') ! JP add
+       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy') ! JP add lnd
     end do
     deallocate(flds)
 
