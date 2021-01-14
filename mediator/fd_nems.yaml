@@ -479,14 +479,14 @@
      #-----------------------------------
      #
      - standard_name: Fall_lat
-       alias: mean_laten_heat_flx_from_lnd
+       alias: mean_latent_heat_flx_from_lnd
        canonical_units: W m-2
-       description: mean_laten_heat_flx_frm_lnd
+       description: mean_latent_heat_flx_frm_lnd
      #
      - standard_name: Fall_lwup
        alias: mean_lw_flx_from_lnd
        canonical_units: W m-2
-       description: mean_lw_flx_frm_lnd
+       description: mean_lw_flx_from_lnd
      #
      - standard_name: Sl_lfrin
        alias: land_mask
