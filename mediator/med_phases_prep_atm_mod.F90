@@ -16,7 +16,9 @@ module med_phases_prep_atm_mod
   use med_merge_mod         , only : med_merge_auto
   use med_map_mod           , only : med_map_field_packed
   use med_internalstate_mod , only : InternalState, mastertask
+! JP changed
   use esmFlds               , only : compatm, compocn, compice, ncomps, compname
+!  use esmFlds               , only : compatm, compocn, compice, complnd, ncomps, compname
   use esmFlds               , only : fldListTo, fldListMed_aoflux, coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 

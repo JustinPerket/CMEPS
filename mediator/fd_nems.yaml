@@ -474,30 +474,30 @@
        description: ocean import - meridional surface stress to ocean
 
      # JP add
-     #-----------------------------------
-     # section: Land export
-     #-----------------------------------
-     #
-     - standard_name: Fall_lat
-       alias: mean_latent_heat_flx_from_lnd
-       canonical_units: W m-2
-       description: mean_latent_heat_flx_frm_lnd
-     #
-     - standard_name: Fall_lwup
-       alias: mean_lw_flx_from_lnd
-       canonical_units: W m-2
-       description: mean_lw_flx_from_lnd
-     #
-     - standard_name: Sl_lfrin
-       alias: land_mask
-       canonical_units: 1
-       description: land export - land mask
-     #
+     # #-----------------------------------
+     # # section: Land export
+     # #-----------------------------------
+     # #
+     # - standard_name: Fall_lat
+     #   alias: mean_latent_heat_flx_from_lnd
+     #   canonical_units: W m-2
+     #   description: mean_latent_heat_flx_frm_lnd
+     # #
+     # - standard_name: Fall_lwup
+     #   alias: mean_lw_flx_from_lnd
+     #   canonical_units: W m-2
+     #   description: mean_lw_flx_from_lnd
+     # #
+     # - standard_name: Sl_lfrin
+     #   alias: land_mask
+     #   canonical_units: 1
+     #   description: land export - land mask
+     # #
 
-     #-----------------------------------
-     # section: Land import
-     #-----------------------------------
-     #
+     # #-----------------------------------
+     # # section: Land import
+     # #-----------------------------------
+     # #
 
 
 
