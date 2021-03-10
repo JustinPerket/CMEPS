@@ -33,6 +33,10 @@
      # section: atmosphere export
      #-----------------------------------
      #
+     - standard_name: foo_atm2lndfield
+       canonical_units: foo
+       description: JP test foo
+
      - standard_name: Faxa_bcph
        canonical_units: kg m-2 s-1
        description: atmosphere export

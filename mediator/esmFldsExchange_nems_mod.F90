@@ -309,7 +309,7 @@ contains
        fldname = trim(flds(n))
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(compice)%flds, trim(fldname))
-       call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add lnd
+       call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add lnd in too
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
        call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy') ! JP add lnd
@@ -317,6 +317,12 @@ contains
     deallocate(flds)
 
     ! JP add, put here tmp
+    !call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
+    !call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from1=compatm, mrg_fld1='inst_land_sea_mask', mrg_type1='copy')
+    call addfld(fldListFr(compatm)%flds, 'foo_atm2lndfield')
+    call addfld(fldListTo(complnd)%flds, 'foo_atm2lndfield')
+    call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from1=compatm, mrg_fld1='foo_atm2lndfield', mrg_type1='copy')
+
     !call addfld(fldListTo(complnd)%flds, 'Faxa_lwdn')
     !call addmrg(fldListTo(complnd)%flds, 'Faxa_lwdn', mrg_from1=compatm, mrg_fld1='Faxa_lwdn', mrg_type1='copy')
     ! JP end
