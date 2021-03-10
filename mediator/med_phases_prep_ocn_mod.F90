@@ -5,8 +5,8 @@ module med_phases_prep_ocn_mod
   !-----------------------------------------------------------------------------
 
   use med_kind_mod          , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
-  use med_constants_mod     , only : czero=>med_constants_czero
-  use med_constants_mod     , only : dbug_flag     => med_constants_dbug_flag
+  use med_constants_mod     , only : czero     =>med_constants_czero
+  use med_constants_mod     , only : dbug_flag => med_constants_dbug_flag
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_merge_mod         , only : med_merge_auto, med_merge_field
   use med_map_mod           , only : med_map_field_packed
@@ -20,17 +20,15 @@ module med_phases_prep_ocn_mod
   use med_methods_mod       , only : FB_copy       => med_methods_FB_copy
   use med_methods_mod       , only : FB_reset      => med_methods_FB_reset
   use esmFlds               , only : fldListTo
-  use esmFlds               , only : compocn, compatm, compice, ncomps, compname, comprof
+  use esmFlds               , only : compocn, compatm, compice
   use esmFlds               , only : coupling_mode
   use perf_mod              , only : t_startf, t_stopf
 
   implicit none
   private
 
-  public :: med_phases_prep_ocn_map
-  public :: med_phases_prep_ocn_merge
-  public :: med_phases_prep_ocn_accum_fast
-  public :: med_phases_prep_ocn_accum_avg
+  public :: med_phases_prep_ocn_accum
+  public :: med_phases_prep_ocn_avg
 
   private :: med_phases_prep_ocn_custom_cesm
   private :: med_phases_prep_ocn_custom_nems
@@ -42,68 +40,7 @@ module med_phases_prep_ocn_mod
 contains
 !-----------------------------------------------------------------------------
 
-  subroutine med_phases_prep_ocn_map(gcomp, rc)
-
-    !---------------------------------------
-    ! Map all fields in from relevant source components to the ocean grid
-    !---------------------------------------
-
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(InternalState) :: is_local
-    integer             :: n1, ncnt
-    logical             :: first_call = .true.
-    character(len=*), parameter :: subname='(med_phases_prep_ocn_map)'
-    !-------------------------------------------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
-    end if
-    call memcheck(subname, 5, mastertask)
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    ! map all fields in FBImp that have active ocean coupling
-    if (ncnt > 0) then
-       do n1 = 1,ncomps
-          if (is_local%wrap%med_coupling_active(n1,compocn)) then
-             call med_map_field_packed( &
-                  FBSrc=is_local%wrap%FBImp(n1,n1), &
-                  FBDst=is_local%wrap%FBImp(n1,compocn), &
-                  FBFracSrc=is_local%wrap%FBFrac(n1), &
-                  field_normOne=is_local%wrap%field_normOne(n1,compocn,:), &
-                  packed_data=is_local%wrap%packed_data(n1,compocn,:), &
-                  routehandles=is_local%wrap%RH(n1,compocn,:), rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          end if
-       end do
-    endif
-
-    call t_stopf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
-    end if
-
-  end subroutine med_phases_prep_ocn_map
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_merge(gcomp, rc)
+  subroutine med_phases_prep_ocn_accum(gcomp, rc)
 
     use ESMF , only : ESMF_GridComp, ESMF_FieldBundleGet
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
@@ -116,7 +53,7 @@ contains
     ! local variables
     type(InternalState) :: is_local
     integer             :: n, ncnt
-    character(len=*), parameter    :: subname='(med_phases_prep_ocn_merge)'
+    character(len=*), parameter    :: subname='(med_phases_prep_ocn_accum)'
     !---------------------------------------
 
     call t_startf('MED:'//subname)
@@ -131,122 +68,56 @@ contains
     call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (ncnt > 0) then
-
-       !---------------------------------------
-       ! merges to ocean
-       !---------------------------------------
-
-       ! auto merges to ocn
-       if (trim(coupling_mode) == 'cesm' .or. &
-           trim(coupling_mode) == 'nems_orig_data' .or. &
-           trim(coupling_mode) == 'hafs') then
-          call med_merge_auto(compocn, &
-               is_local%wrap%med_coupling_active(:,compocn), &
-               is_local%wrap%FBExp(compocn), &
-               is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), &
-               fldListTo(compocn), &
-               FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
-          call med_merge_auto(compocn, &
-               is_local%wrap%med_coupling_active(:,compocn), &
-               is_local%wrap%FBExp(compocn), &
-               is_local%wrap%FBFrac(compocn), &
-               is_local%wrap%FBImp(:,compocn), &
-               fldListTo(compocn), rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! custom merges to ocean
-       if (trim(coupling_mode) == 'cesm') then
-          call med_phases_prep_ocn_custom_cesm(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else if (trim(coupling_mode(1:5)) == 'nems_') then
-          call med_phases_prep_ocn_custom_nems(gcomp, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-       ! diagnose output
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExp(compocn), string=trim(subname)//' FBexp(compocn) ', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-
-    endif
-
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
-    end if
-    call t_stopf('MED:'//subname)
-
-  end subroutine med_phases_prep_ocn_merge
-
-  !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_accum_fast(gcomp, rc)
-
-    ! Carry out fast accumulation for the ocean
-
-    use ESMF , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_FieldBundleGet
-    use ESMF , only : ESMF_Clock, ESMF_Time
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-
-    ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    integer, intent(out) :: rc
-
-    ! local variables
-    type(ESMF_Clock)            :: clock
-    type(ESMF_Time)             :: time
-    type(InternalState)         :: is_local
-    integer                     :: i,j,n,ncnt
-    character(len=*), parameter :: subname='(med_phases_accum_fast)'
-    !---------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call t_startf('MED:'//subname)
-    if (dbug_flag > 20) then
-       call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
-    endif
-
-    ! Get the internal state
-    nullify(is_local%wrap)
-    call ESMF_GridCompGetInternalState(gcomp, is_local, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! Count the number of fields outside of scalar data, if zero, then return
-    call ESMF_FieldBundleGet(is_local%wrap%FBExp(compocn), fieldCount=ncnt, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-
-    if (ncnt > 0) then
-       ! ocean accumulator
-       call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    ! auto merges to ocn
+    if (trim(coupling_mode) == 'cesm' .or. &
+         trim(coupling_mode) == 'nems_orig_data' .or. &
+         trim(coupling_mode) == 'hafs') then
+       call med_merge_auto(compocn, &
+            is_local%wrap%med_coupling_active(:,compocn), &
+            is_local%wrap%FBExp(compocn), &
+            is_local%wrap%FBFrac(compocn), &
+            is_local%wrap%FBImp(:,compocn), &
+            fldListTo(compocn), &
+            FBMed1=is_local%wrap%FBMed_aoflux_o, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode) == 'nems_frac' .or. trim(coupling_mode) == 'nems_orig') then
+       call med_merge_auto(compocn, &
+            is_local%wrap%med_coupling_active(:,compocn), &
+            is_local%wrap%FBExp(compocn), &
+            is_local%wrap%FBFrac(compocn), &
+            is_local%wrap%FBImp(:,compocn), &
+            fldListTo(compocn), rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
-       is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
+    ! custom merges to ocean
+    if (trim(coupling_mode) == 'cesm') then
+       call med_phases_prep_ocn_custom_cesm(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else if (trim(coupling_mode(1:5)) == 'nems_') then
+       call med_phases_prep_ocn_custom_nems(gcomp, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
-       if (dbug_flag > 1) then
-          call FB_diagnose(is_local%wrap%FBExpAccum(compocn), &
-               string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       end if
-    endif
+    ! ocean accumulator
+    call FB_accum(is_local%wrap%FBExpAccum(compocn), is_local%wrap%FBExp(compocn), rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    is_local%wrap%FBExpAccumCnt(compocn) = is_local%wrap%FBExpAccumCnt(compocn) + 1
 
+    ! diagnose output
+    if (dbug_flag > 1) then
+       call FB_diagnose(is_local%wrap%FBExpAccum(compocn), string=trim(subname)//' FBExpAccum accumulation ', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
     if (dbug_flag > 20) then
        call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_accum_fast
+  end subroutine med_phases_prep_ocn_accum
 
   !-----------------------------------------------------------------------------
-  subroutine med_phases_prep_ocn_accum_avg(gcomp, rc)
+  subroutine med_phases_prep_ocn_avg(gcomp, rc)
 
     ! Prepare the OCN import Fields.
 
@@ -260,7 +131,7 @@ contains
     ! local variables
     type(InternalState)        :: is_local
     integer                    :: ncnt
-    character(len=*),parameter :: subname='(med_phases_prep_ocn_accum_avg)'
+    character(len=*),parameter :: subname='(med_phases_prep_ocn_avg)'
     !---------------------------------------
 
     rc = ESMF_SUCCESS
@@ -313,7 +184,7 @@ contains
     end if
     call t_stopf('MED:'//subname)
 
-  end subroutine med_phases_prep_ocn_accum_avg
+  end subroutine med_phases_prep_ocn_avg
 
   !-----------------------------------------------------------------------------
   subroutine med_phases_prep_ocn_custom_cesm(gcomp, rc)
@@ -332,18 +203,28 @@ contains
 
     ! local variables
     type(InternalState) :: is_local
-    real(R8), pointer   :: ifrac(:), ofrac(:) => null()
-    real(R8), pointer   :: ifracr(:), ofracr(:) => null()
-    real(R8), pointer   :: avsdr(:), avsdf(:) => null()
-    real(R8), pointer   :: anidr(:), anidf(:) => null()
-    real(R8), pointer   :: Faxa_swvdf(:), Faxa_swndf(:) => null()
-    real(R8), pointer   :: Faxa_swvdr(:), Faxa_swndr(:) => null()
+    real(R8), pointer   :: ifrac(:) => null()
+    real(R8), pointer   :: ofrac(:) => null()
+    real(R8), pointer   :: ifracr(:) => null()
+    real(R8), pointer   :: ofracr(:) => null()
+    real(R8), pointer   :: avsdr(:) => null()
+    real(R8), pointer   :: avsdf(:) => null()
+    real(R8), pointer   :: anidr(:) => null()
+    real(R8), pointer   :: anidf(:) => null()
+    real(R8), pointer   :: Faxa_swvdf(:) => null()
+    real(R8), pointer   :: Faxa_swndf(:) => null()
+    real(R8), pointer   :: Faxa_swvdr(:) => null()
+    real(R8), pointer   :: Faxa_swndr(:) => null()
     real(R8), pointer   :: Foxx_swnet(:) => null()
     real(R8), pointer   :: Foxx_swnet_afracr(:) => null()
-    real(R8), pointer   :: Foxx_swnet_vdr(:), Foxx_swnet_vdf(:) => null()
-    real(R8), pointer   :: Foxx_swnet_idr(:), Foxx_swnet_idf(:) => null()
-    real(R8), pointer   :: Fioi_swpen_vdr(:), Fioi_swpen_vdf(:) => null()
-    real(R8), pointer   :: Fioi_swpen_idr(:), Fioi_swpen_idf(:) => null()
+    real(R8), pointer   :: Foxx_swnet_vdr(:) => null()
+    real(R8), pointer   :: Foxx_swnet_vdf(:) => null()
+    real(R8), pointer   :: Foxx_swnet_idr(:) => null()
+    real(R8), pointer   :: Foxx_swnet_idf(:) => null()
+    real(R8), pointer   :: Fioi_swpen_vdr(:) => null()
+    real(R8), pointer   :: Fioi_swpen_vdf(:) => null()
+    real(R8), pointer   :: Fioi_swpen_idr(:) => null()
+    real(R8), pointer   :: Fioi_swpen_idf(:) => null()
     real(R8), pointer   :: Fioi_swpen(:) => null()
     real(R8), pointer   :: dataptr(:) => null()
     real(R8), pointer   :: dataptr_o(:) => null()
@@ -657,7 +538,7 @@ contains
     end if
 
     ! netsw_for_ocn = [downsw_from_atm*(1-ice_fraction)*(1-ocn_albedo)] + [pensw_from_ice*(ice_fraction)]
-    customwgt(:) = ofrac(:) * (1.0 - 0.06)
+    customwgt(:) = ofrac(:) * (1.0_R8 - 0.06_R8)
     call med_merge_field(is_local%wrap%FBExp(compocn),      'Foxx_swnet_vdr', &
          FBinA=is_local%wrap%FBImp(compatm,compocn), fnameA='Faxa_swvdr'    , wgtA=customwgt, &
          FBinB=is_local%wrap%FBImp(compice,compocn), fnameB='Fioi_swpen_vdr', wgtB=ifrac, rc=rc)
