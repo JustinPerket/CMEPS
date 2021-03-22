@@ -157,8 +157,8 @@ contains
     call addfld(fldListTo(compatm)%flds, 'Fall_lat')
     call addfld(fldListFr(complnd)%flds, 'Fall_lwup')
     call addfld(fldListTo(compatm)%flds, 'Fall_lwup')
-    call addmrg(fldListTo(compatm)%flds, 'Fall_lat', mrg_from1=complnd, mrg_fld1='Fall_lat', mrg_type1='copy')
-    call addmrg(fldListTo(compatm)%flds, 'Fall_lwup', mrg_from1=complnd, mrg_fld1='Fall_lwup', mrg_type1='copy')
+    call addmrg(fldListTo(compatm)%flds, 'Fall_lat', mrg_from=complnd, mrg_fld='Fall_lat', mrg_type='copy')
+    call addmrg(fldListTo(compatm)%flds, 'Fall_lwup', mrg_from=complnd, mrg_fld='Fall_lwup', mrg_type='copy')
     ! JP end
     
     !=====================================================================
@@ -314,12 +314,8 @@ contains
        call addfld(fldListTo(compice)%flds, trim(fldname))
        call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add lnd in too
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
-<<<<<<< HEAD
-       call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy')
-       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from1=compatm, mrg_fld1=trim(fldname), mrg_type1='copy') ! JP add lnd
-=======
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
->>>>>>> upstream/emc/develop
+       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy') ! JP add lnd
     end do
     deallocate(flds)
 
@@ -328,7 +324,7 @@ contains
     !call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from1=compatm, mrg_fld1='inst_land_sea_mask', mrg_type1='copy')
     call addfld(fldListFr(compatm)%flds, 'foo_atm2lndfield')
     call addfld(fldListTo(complnd)%flds, 'foo_atm2lndfield')
-    call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from1=compatm, mrg_fld1='foo_atm2lndfield', mrg_type1='copy')
+    call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from=compatm, mrg_fld='foo_atm2lndfield', mrg_type='copy')
 
     !call addfld(fldListTo(complnd)%flds, 'Faxa_lwdn')
     !call addmrg(fldListTo(complnd)%flds, 'Faxa_lwdn', mrg_from1=compatm, mrg_fld1='Faxa_lwdn', mrg_type1='copy')
