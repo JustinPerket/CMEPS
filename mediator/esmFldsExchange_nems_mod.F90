@@ -159,6 +159,13 @@ contains
     call addfld(fldListTo(compatm)%flds, 'Fall_lwup')
     call addmrg(fldListTo(compatm)%flds, 'Fall_lat', mrg_from=complnd, mrg_fld='Fall_lat', mrg_type='copy')
     call addmrg(fldListTo(compatm)%flds, 'Fall_lwup', mrg_from=complnd, mrg_fld='Fall_lwup', mrg_type='copy')
+
+    call addfld(fldListFr(complnd)%flds, 'foo_lnd2atmfield')
+    call addfld(fldListTo(compatm)%flds, 'foo_lnd2atmfield')
+    !call addmap(fldListFr(complnd)%flds, 'foo_lnd2atmfield', compatm, maptype, 'none', 'unset')
+    call addmap(fldListFr(complnd)%flds, 'foo_lnd2atmfield', compatm, maptype, 'none', 'unset')
+    call addmrg(fldListTo(compatm)%flds, 'foo_lnd2atmfield', mrg_from=complnd, mrg_fld='foo_lnd2atmfield', mrg_type='copy')
+    
     ! JP end
     
     !=====================================================================
@@ -314,20 +321,37 @@ contains
        call addfld(fldListTo(compice)%flds, trim(fldname))
        call addfld(fldListTo(complnd)%flds, trim(fldname)) ! JP add lnd in too
        call addmap(fldListFr(compatm)%flds, trim(fldname), compice, maptype, 'none', 'unset')
+       call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'none', 'unset') ! JP add lnd
        call addmrg(fldListTo(compice)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
        call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy') ! JP add lnd
     end do
     deallocate(flds)
 
     ! JP add, put here tmp
-    !call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
-    !call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from1=compatm, mrg_fld1='inst_land_sea_mask', mrg_type1='copy')
+    call addfld(fldListFr(compatm)%flds, 'inst_land_sea_mask')
+    call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
+    call addmap(fldListFr(compatm)%flds, 'inst_land_sea_mask', complnd, maptype, 'none', 'unset')    
+    call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from=compatm, mrg_fld='inst_land_sea_mask', mrg_type='copy')
+    
     call addfld(fldListFr(compatm)%flds, 'foo_atm2lndfield')
     call addfld(fldListTo(complnd)%flds, 'foo_atm2lndfield')
+    call addmap(fldListFr(compatm)%flds, 'foo_atm2lndfield', complnd, maptype, 'none', 'unset')    
     call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from=compatm, mrg_fld='foo_atm2lndfield', mrg_type='copy')
 
-    !call addfld(fldListTo(complnd)%flds, 'Faxa_lwdn')
-    !call addmrg(fldListTo(complnd)%flds, 'Faxa_lwdn', mrg_from1=compatm, mrg_fld1='Faxa_lwdn', mrg_type1='copy')
+
+    allocate(flds(5))
+    flds=(/'land_mask                  ', 'sea_ice_surface_temperature', &
+           'sea_surface_temperature    ', 'ice_fraction               ', &
+           'wave_z0_roughness_length   '     /)
+    
+    do n = 1,size(flds)
+       fldname = trim(flds(n))    
+       call addfld(fldListFr(compatm)%flds, trim(fldname))
+       call addfld(fldListTo(complnd)%flds, trim(fldname)) 
+       call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'none', 'unset') 
+       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy') 
+    end do
+    deallocate(flds)
     ! JP end
 
     
