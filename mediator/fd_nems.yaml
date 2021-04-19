@@ -36,7 +36,13 @@
      - standard_name: foo_atm2lndfield
        canonical_units: foo
        description: JP test foo
+     # JP add
+     - standard_name: Faxa_soiltyp
+       alias: soil_type_classification
+       canonical_units: integers
+       description: atmosphere export
 
+     # JP end
      - standard_name: Faxa_bcph
        canonical_units: kg m-2 s-1
        description: atmosphere export
@@ -547,6 +553,10 @@
      # section: Land export
      #-----------------------------------
      #
+     - standard_name: foo_lnd2atmfield
+       canonical_units: foo
+       description: JP test foo
+     
      - standard_name: Fall_lat
        alias: mean_latent_heat_flx_from_lnd
        canonical_units: W m-2

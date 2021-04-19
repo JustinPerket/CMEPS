@@ -327,6 +327,7 @@ contains
     end do
     deallocate(flds)
 
+    
     ! JP add, put here tmp
     call addfld(fldListFr(compatm)%flds, 'inst_land_sea_mask')
     call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
@@ -338,18 +339,26 @@ contains
     call addmap(fldListFr(compatm)%flds, 'foo_atm2lndfield', complnd, maptype, 'none', 'unset')    
     call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from=compatm, mrg_fld='foo_atm2lndfield', mrg_type='copy')
 
+    ! call addfld(fldListFr(compatm)%flds, 'soil_type_classification')
+    ! call addfld(fldListTo(complnd)%flds, 'soil_type_classification')
+    ! call addmap(fldListFr(compatm)%flds, 'soil_type_classification', complnd, maptype, 'none', 'unset')    
+    ! call addmrg(fldListTo(complnd)%flds, 'soil_type_classification', mrg_from=compatm, mrg_fld='soil_type_classification', mrg_type='copy')
 
-    allocate(flds(5))
-    flds=(/'land_mask                  ', 'sea_ice_surface_temperature', &
-           'sea_surface_temperature    ', 'ice_fraction               ', &
-           'wave_z0_roughness_length   '     /)
+    ! call addfld(fldListFr(compatm)%flds, 'Faxa_soiltyp')
+    ! call addfld(fldListTo(complnd)%flds, 'Faxa_soiltyp')
+    ! call addmap(fldListFr(compatm)%flds, 'Faxa_soiltyp', complnd, maptype, 'none', 'unset')
+    ! call addmrg(fldListTo(complnd)%flds, 'Faxa_soiltyp', mrg_from=compatm, mrg_fld='Faxa_soiltyp', mrg_type='copy')
+
+    
+    allocate(flds(1))
+    flds=(/'Faxa_soiltyp'     /)
     
     do n = 1,size(flds)
        fldname = trim(flds(n))    
        call addfld(fldListFr(compatm)%flds, trim(fldname))
        call addfld(fldListTo(complnd)%flds, trim(fldname)) 
        call addmap(fldListFr(compatm)%flds, trim(fldname), complnd, maptype, 'none', 'unset') 
-       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy') 
+       call addmrg(fldListTo(complnd)%flds, trim(fldname), mrg_from=compatm, mrg_fld=trim(fldname), mrg_type='copy')
     end do
     deallocate(flds)
     ! JP end
