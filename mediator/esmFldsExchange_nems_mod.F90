@@ -339,20 +339,33 @@ contains
     call addmap(fldListFr(compatm)%flds, 'foo_atm2lndfield', complnd, maptype, 'none', 'unset')    
     call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from=compatm, mrg_fld='foo_atm2lndfield', mrg_type='copy')
 
-    ! call addfld(fldListFr(compatm)%flds, 'soil_type_classification')
-    ! call addfld(fldListTo(complnd)%flds, 'soil_type_classification')
-    ! call addmap(fldListFr(compatm)%flds, 'soil_type_classification', complnd, maptype, 'none', 'unset')    
-    ! call addmrg(fldListTo(complnd)%flds, 'soil_type_classification', mrg_from=compatm, mrg_fld='soil_type_classification', mrg_type='copy')
+       
+    allocate(flds(22))
+    flds=(/ &
+         'Faxa_soiltyp     ', &
+         'Faxa_vegtype     ', &
+         'Faxa_sigmaf      ', &
+         'Faxa_sfcemis     ', &
+         'Faxa_dlwflx      ', &
+         'Faxa_dswsfc      ', &
+         'Faxa_snet        ', &
+         'Faxa_tg3         ', &
+         'Faxa_cm          ', &
+         'Faxa_ch          ', &
+         'Faxa_prsl1       ', &
+         'Faxa_prslki      ', &
+         'Faxa_zf          ', &
+         'Faxa_land        ', &
+         'Faxa_slopetyp    ', &
+         'Faxa_shdmin      ', &
+         'Faxa_shdmax      ', &
+         'Faxa_snoalb      ', &
+         'Faxa_sfalb       ', &
+         'Faxa_bexppert    ', &
+         'Faxa_xlaipert    ', &
+         'Faxa_vegfpert    '  &
+         /)
 
-    ! call addfld(fldListFr(compatm)%flds, 'Faxa_soiltyp')
-    ! call addfld(fldListTo(complnd)%flds, 'Faxa_soiltyp')
-    ! call addmap(fldListFr(compatm)%flds, 'Faxa_soiltyp', complnd, maptype, 'none', 'unset')
-    ! call addmrg(fldListTo(complnd)%flds, 'Faxa_soiltyp', mrg_from=compatm, mrg_fld='Faxa_soiltyp', mrg_type='copy')
-
-    
-    allocate(flds(1))
-    flds=(/'Faxa_soiltyp'     /)
-    
     do n = 1,size(flds)
        fldname = trim(flds(n))    
        call addfld(fldListFr(compatm)%flds, trim(fldname))
