@@ -153,18 +153,69 @@ contains
 
     ! JP add. Am I doing this right?
     ! to atm: unmerged from land
-    call addfld(fldListFr(complnd)%flds, 'Fall_lat')
-    call addfld(fldListTo(compatm)%flds, 'Fall_lat')
-    call addfld(fldListFr(complnd)%flds, 'Fall_lwup')
-    call addfld(fldListTo(compatm)%flds, 'Fall_lwup')
-    call addmrg(fldListTo(compatm)%flds, 'Fall_lat', mrg_from=complnd, mrg_fld='Fall_lat', mrg_type='copy')
-    call addmrg(fldListTo(compatm)%flds, 'Fall_lwup', mrg_from=complnd, mrg_fld='Fall_lwup', mrg_type='copy')
+    ! call addfld(fldListFr(complnd)%flds, 'Fall_lat')
+    ! call addfld(fldListTo(compatm)%flds, 'Fall_lat')
+    ! call addfld(fldListFr(complnd)%flds, 'Fall_lwup')
+    ! call addfld(fldListTo(compatm)%flds, 'Fall_lwup')
+    ! call addmrg(fldListTo(compatm)%flds, 'Fall_lat', mrg_from=complnd, mrg_fld='Fall_lat', mrg_type='copy')
+    ! call addmrg(fldListTo(compatm)%flds, 'Fall_lwup', mrg_from=complnd, mrg_fld='Fall_lwup', mrg_type='copy')
 
     call addfld(fldListFr(complnd)%flds, 'foo_lnd2atmfield')
     call addfld(fldListTo(compatm)%flds, 'foo_lnd2atmfield')
     !call addmap(fldListFr(complnd)%flds, 'foo_lnd2atmfield', compatm, maptype, 'none', 'unset')
     call addmap(fldListFr(complnd)%flds, 'foo_lnd2atmfield', compatm, maptype, 'none', 'unset')
     call addmrg(fldListTo(compatm)%flds, 'foo_lnd2atmfield', mrg_from=complnd, mrg_fld='foo_lnd2atmfield', mrg_type='copy')
+
+    ! land exports to atm
+    allocate(flds(37))
+    flds=(/ &
+         'Fall_weasd ', &         ! inouts
+         'Fall_snwdph', &
+         'Fall_tskin ', &
+         'Fall_tprcp ', &
+         'Fall_srflag', &
+         'Fall_smc   ', &
+         'Fall_stc   ', &
+         'Fall_slc   ', &
+         'Fall_canopy', &
+         'Fall_trans ', &
+         'Fall_tsurf ', &
+         'Fall_z0rl  ', &
+         'Fall_sncovr1', &         ! noahouts
+         'Fall_qsurf  ', &
+         'Fall_gflux  ', &
+         'Fall_drain  ', &
+         'Fall_evap   ', &
+         'Fall_hflx   ', &
+         'Fall_ep     ', &
+         'Fall_runoff ', &
+         'Fall_cmm    ', &
+         'Fall_chh    ', &
+         'Fall_evbs   ', &
+         'Fall_evcw   ', &
+         'Fall_sbsno  ', &
+         'Fall_snowc  ', &
+         'Fall_stm    ', &
+         'Fall_snohf  ', &
+         'Fall_smcwlt2', &
+         'Fall_smcref2', &
+         'Fall_wet1   ', &
+         'Fall_rb_lnd  ', &         ! diffouts
+         'Fall_fm_lnd  ', &
+         'Fall_fh_lnd  ', &
+         'Fall_fm10_lnd', &
+         'Fall_fh2_lnd ', &
+         'Fall_stress  '  &
+         /)
+
+    do n = 1,size(flds)
+       fldname = trim(flds(n))
+       call addfld(fldListFr(complnd)%flds, trim(fldname))
+       call addfld(fldListTo(compatm)%flds, trim(fldname))
+       call addmap(fldListFr(complnd)%flds, trim(fldname), compatm, maptype, 'none', 'unset')
+       call addmrg(fldListTo(compatm)%flds, trim(fldname), mrg_from=complnd, mrg_fld=trim(fldname), mrg_type='copy')
+    end do
+    deallocate(flds)
     
     ! JP end
     
@@ -363,7 +414,25 @@ contains
          'Faxa_sfalb       ', &
          'Faxa_bexppert    ', &
          'Faxa_xlaipert    ', &
-         'Faxa_vegfpert    '  &
+         'Faxa_vegfpert    ', &
+         'Faxa_prsik1      ', &
+         'Faxa_sfalb       ', &
+         'Faxa_weasd       ', &
+         'Faxa_snwdph      ', &
+         'Faxa_tskin       ', &
+         'Faxa_tprcp       ', &
+         'Faxa_srflag      ', &
+         ! 'Faxa_smc         ', &
+         ! 'Faxa_stc         ', &
+         ! 'Faxa_slc         ', &
+         'Faxa_canopy      ', &
+         'Faxa_trans       ', &
+         'Faxa_tsurf       ', &
+         'Faxa_z0rl        ', &
+         'Faxa_z0pert      ', &
+         'Faxa_ztpert      ', &
+         'Faxa_ustar       '  &       
+         
          /)
 
     do n = 1,size(flds)
