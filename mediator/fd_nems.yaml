@@ -223,7 +223,7 @@
        description: atmosphere export
      #
      - standard_name: Faxa_z0rl
-       alias: surface_roughness_length_over_land_interstitial
+       alias: surface_roughness_length_over_land
        canonical_units: cm
        description: atmosphere export
      #
@@ -829,7 +829,7 @@
        description: land export
      #
      - standard_name: Fall_z0rl
-       alias: surface_roughness_length_over_land_interstitial
+       alias: surface_roughness_length_over_land
        canonical_units: cm
        description: land export
      #
