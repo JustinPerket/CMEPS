@@ -380,10 +380,10 @@ contains
 
     
     ! JP add, put here tmp
-    call addfld(fldListFr(compatm)%flds, 'inst_land_sea_mask')
-    call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
-    call addmap(fldListFr(compatm)%flds, 'inst_land_sea_mask', complnd, maptype, 'none', 'unset')    
-    call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from=compatm, mrg_fld='inst_land_sea_mask', mrg_type='copy')
+    ! call addfld(fldListFr(compatm)%flds, 'inst_land_sea_mask')
+    ! call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
+    ! call addmap(fldListFr(compatm)%flds, 'inst_land_sea_mask', complnd, maptype, 'none', 'unset')    
+    ! call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from=compatm, mrg_fld='inst_land_sea_mask', mrg_type='copy')
     
     call addfld(fldListFr(compatm)%flds, 'foo_atm2lndfield')
     call addfld(fldListTo(complnd)%flds, 'foo_atm2lndfield')
@@ -391,7 +391,7 @@ contains
     call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from=compatm, mrg_fld='foo_atm2lndfield', mrg_type='copy')
 
        
-    allocate(flds(22))
+    allocate(flds(41))
     flds=(/ &
          'Faxa_soiltyp     ', &
          'Faxa_vegtype     ', &
@@ -399,6 +399,7 @@ contains
          'Faxa_sfcemis     ', &
          'Faxa_dlwflx      ', &
          'Faxa_dswsfc      ', &
+         'inst_down_sw_flx ', &
          'Faxa_snet        ', &
          'Faxa_tg3         ', &
          'Faxa_cm          ', &
@@ -431,7 +432,11 @@ contains
          'Faxa_z0rl        ', &
          'Faxa_z0pert      ', &
          'Faxa_ztpert      ', &
-         'Faxa_ustar       '  &       
+         'Faxa_ustar       ', &       
+         'Faxa_wind        ',  &       
+         'Faxa_ps          ',  &       
+         'Faxa_t1          ',  &       
+         'Faxa_q1          '  &       
          
          /)
 
