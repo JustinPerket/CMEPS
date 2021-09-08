@@ -393,13 +393,8 @@ contains
     end do
     deallocate(flds)
 
-    
-    ! JP add, put here tmp
-    ! call addfld(fldListFr(compatm)%flds, 'inst_land_sea_mask')
-    ! call addfld(fldListTo(complnd)%flds, 'inst_land_sea_mask')
-    ! call addmap(fldListFr(compatm)%flds, 'inst_land_sea_mask', complnd, maptype, 'none', 'unset')    
-    ! call addmrg(fldListTo(complnd)%flds, 'inst_land_sea_mask', mrg_from=compatm, mrg_fld='inst_land_sea_mask', mrg_type='copy')
-    
+
+    ! JP temp testing
     call addfld(fldListFr(compatm)%flds, 'foo_atm2lndfield')
     call addfld(fldListTo(complnd)%flds, 'foo_atm2lndfield')
     call addmap(fldListFr(compatm)%flds, 'foo_atm2lndfield', complnd, maptype, 'none', 'unset')    
@@ -451,8 +446,18 @@ contains
          'Faxa_wind        ',  &       
          'Faxa_ps          ',  &       
          'Faxa_t1          ',  &       
-         'Faxa_q1          '  &       
-         
+         'Faxa_q1          ',  &       
+         'Faxa_albdvis_lnd ', &
+         'Faxa_albdnir_lnd ', &
+         'Faxa_albivis_lnd ', &
+         'Faxa_albinir_lnd ', &
+         'Faxa_adjvisbmd   ', &
+         'Faxa_adjnirbmd   ', &
+         'Faxa_adjvisdfd   ', &
+         'Faxa_adjnirdfd   ', &
+         'Faxa_prslk1      ', &
+         'Faxa_thsfc_loc   ', &
+         'Faxa_garea       '  &         
          /)
 
     do n = 1,size(flds)
