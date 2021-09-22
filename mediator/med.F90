@@ -3,8 +3,8 @@ module MED
   !-----------------------------------------------------------------------------
   ! Mediator Component.
   !-----------------------------------------------------------------------------
-
   use ESMF                     , only : ESMF_VMLogMemInfo
+  use NUOPC_Model              , only : SetVM
   use med_kind_mod             , only : CX=>SHR_KIND_CX, CS=>SHR_KIND_CS, CL=>SHR_KIND_CL, R8=>SHR_KIND_R8
   use med_constants_mod        , only : dbug_flag          => med_constants_dbug_flag
   use med_constants_mod        , only : spval_init         => med_constants_spval_init
@@ -48,7 +48,7 @@ module MED
   private
 
   public  SetServices
-
+  public  SetVM
   private InitializeP0
   private InitializeIPDv03p1 ! advertise fields
   private InitializeIPDv03p3 ! realize connected Fields with transfer action "provide"
@@ -279,7 +279,7 @@ contains
     call NUOPC_CompSpecialize(gcomp, specLabel=mediator_label_TimestampExport, &
          specPhaselabel="med_phases_post_ocn", specRoutine=NUOPC_NoOp, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
- 
+
     !------------------
     ! prep and post routines for ice
     !------------------
@@ -556,9 +556,9 @@ contains
     use ESMF  , only : ESMF_GridCompGet, ESMF_VMGet, ESMF_AttributeGet, ESMF_AttributeSet
     use ESMF  , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_METHOD_INITIALIZE
     use NUOPC , only : NUOPC_CompFilterPhaseMap, NUOPC_CompAttributeGet
-    use med_internalstate_mod, only : mastertask, logunit
+    use med_internalstate_mod, only : mastertask, logunit, diagunit
     use esmFlds, only : dststatus_print
- 
+
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
@@ -568,10 +568,13 @@ contains
     type(ESMF_VM)     :: vm
     character(len=CL) :: cvalue
     integer           :: localPet
+    integer           :: i
     logical           :: isPresent, isSet
     character(len=CX) :: msgString
     character(len=CX) :: diro
     character(len=CX) :: logfile
+    character(len=CX) :: diagfile
+    character(len=CX) :: do_budgets
     character(len=*),parameter :: subname=' (module_MED:InitializeP0) '
     !-----------------------------------------------------------
 
@@ -597,6 +600,16 @@ contains
           logfile = 'mediator.log'
        end if
        open(newunit=logunit, file=trim(diro)//"/"//trim(logfile))
+
+       call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.true.') then
+             i = index(logfile, '.log')
+             diagfile = "diags"//logfile(i:)
+             open(newunit=diagunit, file=trim(diro)//"/"//trim(diagfile))
+          endif
+       end if
     else
        logUnit = 6
     endif
@@ -651,6 +664,7 @@ contains
     ! TransferOfferGeomObject Attribute.
 
     use ESMF  , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_SUCCESS, ESMF_LogFoundAllocError
+    use ESMF  , only : ESMF_StateIsCreated
     use ESMF  , only : ESMF_LogMsg_Info, ESMF_LogWrite
     use ESMF  , only : ESMF_END_ABORT, ESMF_Finalize
     use NUOPC , only : NUOPC_AddNamespace, NUOPC_Advertise, NUOPC_AddNestedState
@@ -731,6 +745,14 @@ contains
          nestedState=is_local%wrap%NStateExp(compwav), rc=rc)
 
     ! Only create nested states for active ice sheets
+    call NUOPC_CompAttributeGet(gcomp, name='num_icesheets', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) num_icesheets
+    else
+       num_icesheets = 0
+    end if
     do ns = 1,num_icesheets
        write(cnum,'(i0)') ns
        call NUOPC_AddNestedState(importState, CplSet="GLC"//trim(cnum), &
@@ -838,11 +860,16 @@ contains
        glc_name = trim(cvalue)
     end if
 
+    call NUOPC_CompAttributeGet(gcomp, name='MED_model', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+       med_name = trim(cvalue)
+    end if
+
     call NUOPC_CompAttributeGet(gcomp, name='mediator_present', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
        med_present = trim(cvalue)
-       med_name = trim(cvalue)
     end if
 
     call NUOPC_CompAttributeSet(gcomp, name="atm_present", value=atm_present, rc=rc)
@@ -905,7 +932,7 @@ contains
     if (isPresent .and. isSet) then
        read(cvalue,*) is_local%wrap%flds_scalar_index_precip_factor
     else
-       is_local%wrap%flds_scalar_index_precip_factor = spval
+       is_local%wrap%flds_scalar_index_precip_factor = 0
     end if
 
     !------------------
@@ -915,39 +942,42 @@ contains
     do ncomp = 1,ncomps
        if (ncomp /= compmed) then
           if (mastertask) write(logunit,*)
-          nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
-          do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname, shortname)
-             if (mastertask) then
-                write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
-             end if
-             if (trim(shortname) == is_local%wrap%flds_scalar_name) then
-                transferOffer = 'will provide'
-             else
-                transferOffer = 'cannot provide'
-             end if
-             call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
-                  TransferOfferGeomObject=transferOffer, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
-          end do
-
-          nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
-          do n = 1,nflds
-             call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname, shortname)
-             if (mastertask) then
-                write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
-             end if
-             if (trim(shortname) == is_local%wrap%flds_scalar_name) then
-                transferOffer = 'will provide'
-             else
-                transferOffer = 'cannot provide'
-             end if
-             call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
-                  TransferOfferGeomObject=transferOffer, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
-          end do
+          if (ESMF_StateIsCreated(is_local%wrap%NStateImp(ncomp))) then
+             nflds = med_fldList_GetNumFlds(fldListFr(ncomp))
+             do n = 1,nflds
+                call med_fldList_GetFldInfo(fldListFr(ncomp), n, stdname, shortname)
+                if (mastertask) then
+                   write(logunit,'(a)') trim(subname)//':Fr_'//trim(compname(ncomp))//': '//trim(shortname)
+                end if
+                if (trim(shortname) == is_local%wrap%flds_scalar_name) then
+                   transferOffer = 'will provide'
+                else
+                   transferOffer = 'cannot provide'
+                end if
+                call NUOPC_Advertise(is_local%wrap%NStateImp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
+                     TransferOfferGeomObject=transferOffer, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_LogWrite(subname//':Fr_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
+             end do
+          end if
+          if (ESMF_StateIsCreated(is_local%wrap%NStateExp(ncomp))) then
+             nflds = med_fldList_GetNumFlds(fldListTo(ncomp))
+             do n = 1,nflds
+                call med_fldList_GetFldInfo(fldListTo(ncomp), n, stdname, shortname)
+                if (mastertask) then
+                   write(logunit,'(a)') trim(subname)//':To_'//trim(compname(ncomp))//': '//trim(shortname)
+                end if
+                if (trim(shortname) == is_local%wrap%flds_scalar_name) then
+                   transferOffer = 'will provide'
+                else
+                   transferOffer = 'cannot provide'
+                end if
+                call NUOPC_Advertise(is_local%wrap%NStateExp(ncomp), standardName=stdname, shortname=shortname, name=shortname, &
+                     TransferOfferGeomObject=transferOffer, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                call ESMF_LogWrite(subname//':To_'//trim(compname(ncomp))//': '//trim(shortname), ESMF_LOGMSG_INFO)
+             end do
+          end if
        end if
     end do ! end of ncomps loop
 
@@ -965,12 +995,9 @@ contains
     use ESMF , only : ESMF_GridComp, ESMF_State, ESMF_Clock, ESMF_VM, ESMF_SUCCESS
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_INFO, ESMF_TimeInterval
     use ESMF , only : ESMF_VMGet, ESMF_StateIsCreated, ESMF_GridCompGet
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
     use ESMF , only : ESMF_StateSet, ESMF_StateIntent_Import, ESMF_StateIntent_Export
     use ESMF , only : ESMF_StateIntent_Flag
-#endif
-#endif
+
     ! Input/output variables
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
@@ -1001,24 +1028,16 @@ contains
     ! Realize States
     do n = 1,ncomps
       if (ESMF_StateIsCreated(is_local%wrap%NStateImp(n), rc=rc)) then
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
          call ESMF_StateSet(is_local%wrap%NStateImp(n), stateIntent=ESMF_StateIntent_Import, rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
-#endif
          call med_fldList_Realize(is_local%wrap%NStateImp(n), fldListFr(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':Fr_'//trim(compname(n)), rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       endif
       if (ESMF_StateIsCreated(is_local%wrap%NStateExp(n), rc=rc)) then
-#if ESMF_VERSION_MAJOR >= 8
-#if ESMF_VERSION_MINOR >  0
           call ESMF_StateSet(is_local%wrap%NStateExp(n), stateIntent=ESMF_StateIntent_Export, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
-#endif
-#endif
           call med_fldList_Realize(is_local%wrap%NStateExp(n), fldListTo(n), &
               is_local%wrap%flds_scalar_name, is_local%wrap%flds_scalar_num, &
               tag=subname//':To_'//trim(compname(n)), rc=rc)
@@ -1711,7 +1730,7 @@ contains
     use ESMF                    , only : ESMF_State, ESMF_Time, ESMF_Field, ESMF_StateItem_Flag, ESMF_MAXSTR
     use ESMF                    , only : ESMF_GridCompGet, ESMF_AttributeGet, ESMF_ClockGet, ESMF_Success
     use ESMF                    , only : ESMF_StateIsCreated, ESMF_StateGet, ESMF_FieldBundleIsCreated, ESMF_LogFlush
-    use ESMF                    , only : ESMF_VM
+    use ESMF                    , only : ESMF_FieldBundleGet, ESMF_VM
     use NUOPC                   , only : NUOPC_CompAttributeSet, NUOPC_IsAtTime, NUOPC_SetAttribute
     use NUOPC                   , only : NUOPC_CompAttributeGet
     use med_fraction_mod        , only : med_fraction_init, med_fraction_set
@@ -1744,6 +1763,7 @@ contains
     type(ESMF_Field)                   :: field
     type(ESMF_StateItem_Flag)          :: itemType
     logical                            :: atCorrectTime, connected
+    logical                            :: isPresent, isSet
     integer                            :: n1,n2,n,ns
     integer                            :: nsrc,ndst
     integer                            :: cntn1, cntn2
@@ -1850,6 +1870,7 @@ contains
       med_coupling_allowed(complnd,compatm) = .true.
       med_coupling_allowed(compice,compatm) = .true.
       med_coupling_allowed(compocn,compatm) = .true.
+      med_coupling_allowed(compwav,compatm) = .true.
 
       ! to land
       med_coupling_allowed(compatm,complnd) = .true.
@@ -1984,7 +2005,6 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBImpAccum(n1,n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%FBImpAccumCnt(n1) = 0
 
             ! Create export accumulation field bundles
             call FB_init(is_local%wrap%FBExpAccum(n1), is_local%wrap%flds_scalar_name, &
@@ -1993,11 +2013,25 @@ contains
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_reset(is_local%wrap%FBExpAccum(n1), value=czero, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            is_local%wrap%FBExpAccumCnt(n1) = 0
 
             ! Create mesh info data
-            call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
-                 is_local%wrap%mesh_info(n1), rc=rc)
+            call ESMF_FieldBundleGet(is_local%wrap%FBImp(n1,n1), fieldCount=fieldCount, rc=rc) 
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+            if (fieldCount == 0) then           
+              if (mastertask) then
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' import FB field count is = ', fieldCount
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' trying to use export FB'
+                call ESMF_FieldBundleGet(is_local%wrap%FBExp(n1), fieldCount=fieldCount, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                write(logunit,*) trim(subname)//' '//trim(compname(n1))//' export FB field count is = ', fieldCount
+              end if
+              call med_meshinfo_create(is_local%wrap%FBExp(n1), &
+                   is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            else
+              call med_meshinfo_create(is_local%wrap%FBImp(n1,n1), &
+                   is_local%wrap%mesh_info(n1), is_local%wrap%FBArea(n1), rc=rc)
+            end if
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
          end if
 
@@ -2015,10 +2049,21 @@ contains
                        trim(compname(n1))//'_'//trim(compname(n2))
                end if
 
-               call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
-                    STgeom=is_local%wrap%NStateImp(n2), &
-                    STflds=is_local%wrap%NStateImp(n1), &
-                    name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               ! Check import FB, if there is no field in it then use export FB
+               ! to provide mesh information
+               call State_GetNumFields(is_local%wrap%NStateImp(n2), fieldCount, rc=rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+               if (fieldCount == 0) then 
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateExp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               else
+                 call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      STgeom=is_local%wrap%NStateImp(n2), &
+                      STflds=is_local%wrap%NStateImp(n1), &
+                      name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
+               end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
                call FB_init(is_local%wrap%FBImpAccum(n1,n2), is_local%wrap%flds_scalar_name, &
@@ -2138,11 +2183,15 @@ contains
       ! Initialized packed field data structures
       !---------------------------------------
 
-      call med_map_RouteHandles_init(gcomp, logunit, rc)
+      call ESMF_LogWrite("before med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
+      call med_map_RouteHandles_init(gcomp, is_local%wrap%flds_scalar_name, logunit, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_RouteHandles_init", ESMF_LOGMSG_INFO)
 
+      call ESMF_LogWrite("before med_map_mapnorm_init", ESMF_LOGMSG_INFO)
       call med_map_mapnorm_init(gcomp, rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_LogWrite("after  med_map_mapnorm_init", ESMF_LOGMSG_INFO)
 
       do ndst = 1,ncomps
          do nsrc = 1,ncomps
@@ -2377,17 +2426,23 @@ contains
           write(logunit,'(a)') trim(subname)//"Initialize-Data-Dependency allDone check Passed"
        end if
        do n1 = 1,ncomps
+          if (mastertask) then
+          write(logunit,*)
+          write(logunit,'(a)') trim(subname)//" "//trim(compname(n1))
+          end if
           if (is_local%wrap%comp_present(n1) .and. ESMF_StateIsCreated(is_local%wrap%NStateImp(n1),rc=rc)) then
              call State_GetScalar(scalar_value=real_nx, &
                   scalar_id=is_local%wrap%flds_scalar_index_nx, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call State_GetScalar(scalar_value=real_ny, &
                   scalar_id=is_local%wrap%flds_scalar_index_ny, &
                   state=is_local%wrap%NstateImp(n1), &
                   flds_scalar_name=is_local%wrap%flds_scalar_name, &
                   flds_scalar_num=is_local%wrap%flds_scalar_num, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              is_local%wrap%nx(n1) = nint(real_nx)
              is_local%wrap%ny(n1) = nint(real_ny)
              write(msgString,'(2i8,2l4)') is_local%wrap%nx(n1), is_local%wrap%ny(n1)
@@ -2408,10 +2463,17 @@ contains
        !---------------------------------------
        ! Initialize mediator water/heat budget diags
        !---------------------------------------
-       call med_diag_init(gcomp, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call med_diag_zero(gcomp, mode='all', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call NUOPC_CompAttributeGet(gcomp, name="do_budgets", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       if (isPresent .and. isSet) then
+          if (trim(cvalue) .eq. '.true.') then
+            call med_diag_init(gcomp, rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            call med_diag_zero(mode='all', rc=rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          endif
+       endif
 
        !---------------------------------------
        ! read mediator restarts
@@ -2467,7 +2529,7 @@ contains
        end if
 
        call med_phases_profile(gcomp, rc)
-
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else ! Not all done
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="false", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -2555,17 +2617,19 @@ contains
 
   !-----------------------------------------------------------------------------
 
-  subroutine med_meshinfo_create(FB, mesh_info, rc)
+  subroutine med_meshinfo_create(FB, mesh_info, FBArea, rc)
 
     use ESMF , only : ESMF_Array, ESMF_ArrayCreate, ESMF_ArrayDestroy, ESMF_Field, ESMF_FieldGet
     use ESMF , only : ESMF_DistGrid, ESMF_FieldBundle, ESMF_FieldRegridGetArea, ESMF_FieldBundleGet
     use ESMF , only : ESMF_Mesh, ESMF_MeshGet, ESMF_MESHLOC_ELEMENT, ESMF_TYPEKIND_R8
     use ESMF , only : ESMF_SUCCESS, ESMF_FAILURE, ESMF_LogWrite, ESMF_LOGMSG_INFO
+    use ESMF , only : ESMF_FieldCreate, ESMF_FieldBundleCreate, ESMF_FieldBundleAdd
     use med_internalstate_mod , only : mesh_info_type
 
     ! input/output variables
     type(ESMF_FieldBundle) , intent(in)    :: FB
     type(mesh_info_type)   , intent(inout) :: mesh_info
+    type(ESMF_FieldBundle) , intent(inout) :: FBArea
     integer                , intent(out)   :: rc
 
     ! local variables
@@ -2615,6 +2679,17 @@ contains
        mesh_info%lats(n) = ownedElemCoords(2*n)
     end do
     deallocate(ownedElemCoords)
+
+    ! Create field bundle with areas so that this can be output to mediator history file
+    lfield = ESMF_FieldCreate(lmesh, ESMF_TYPEKIND_r8, name='area', meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    FBArea = ESMF_FieldBundleCreate(rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldBundleAdd(FBArea, (/lfield/), rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    dataptr(:) = mesh_info%areas(:)
 
   end subroutine med_meshinfo_create
 
