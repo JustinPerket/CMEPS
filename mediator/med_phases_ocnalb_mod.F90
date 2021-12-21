@@ -94,11 +94,11 @@ contains
     integer                  :: spatialDim
     integer                  :: numOwnedElements
     type(InternalState)      :: is_local
-    real(R8), pointer        :: ownedElemCoords(:) => null()
+    real(R8), pointer        :: ownedElemCoords(:)
     character(len=CL)        :: tempc1,tempc2
     logical                  :: mastertask
     integer                  :: fieldCount
-    type(ESMF_Field), pointer :: fieldlist(:) => null()
+    type(ESMF_Field), pointer :: fieldlist(:)
     character(*), parameter  :: subname = '(med_phases_ocnalb_init) '
     !-----------------------------------------------------------------------
 
@@ -210,7 +210,7 @@ contains
     use ESMF          , only : ESMF_FieldBundleGet, ESMF_FieldBundleIsCreated
     use ESMF          , only : operator(+)
     use NUOPC         , only : NUOPC_CompAttributeGet
-    use shr_const_mod , only : shr_const_pi
+    use med_constants_mod , only : shr_const_pi
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -232,10 +232,10 @@ contains
     character(CL)           :: runtype          ! initial, continue, hybrid, branch
     logical                 :: flux_albav       ! flux avg option
     real(R8)                :: nextsw_cday      ! calendar day of next atm shortwave
-    real(R8), pointer       :: ofrac(:) => null()
-    real(R8), pointer       :: ofrad(:) => null()
-    real(R8), pointer       :: ifrac(:) => null()
-    real(R8), pointer       :: ifrad(:) => null()
+    real(R8), pointer       :: ofrac(:)
+    real(R8), pointer       :: ofrad(:)
+    real(R8), pointer       :: ifrac(:)
+    real(R8), pointer       :: ifrad(:)
     integer                 :: lsize            ! local size
     integer                 :: n,i              ! indices
     real(R8)                :: rlat             ! gridcell latitude in radians
