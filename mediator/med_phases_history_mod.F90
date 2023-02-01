@@ -18,8 +18,8 @@ module med_phases_history_mod
   use ESMF                  , only : operator(-), operator(+)
   use NUOPC                 , only : NUOPC_CompAttributeGet
   use NUOPC_Model           , only : NUOPC_ModelGet
-  use esmFlds               , only : ncomps, compname
   use med_utils_mod         , only : chkerr => med_utils_ChkErr
+  use med_internalstate_mod , only : ncomps, compname
   use med_internalstate_mod , only : InternalState, mastertask, logunit
   use med_time_mod          , only : med_time_alarmInit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
@@ -27,6 +27,9 @@ module med_phases_history_mod
 
   implicit none
   private
+
+  ! Public routine called from med_internal_state_init
+  public :: med_phases_history_init
 
   ! Public routine called from the run sequence
   public :: med_phases_history_write         ! inst only - for all variables
@@ -65,7 +68,7 @@ module med_phases_history_mod
      logical          :: is_clockset = .false.
      logical          :: is_active = .false.
   end type instfile_type
-  type(instfile_type) , public :: instfiles(ncomps)
+  type(instfile_type) , allocatable, public :: instfiles(:)
 
   ! ----------------------------
   ! Time averaging history files
@@ -84,7 +87,7 @@ module med_phases_history_mod
      logical                :: is_clockset = .false.
      logical                :: is_active = .false.
   end type avgfile_type
-  type(avgfile_type) :: avgfiles(ncomps)
+  type(avgfile_type), allocatable :: avgfiles(:)
 
   ! ----------------------------
   ! Auxiliary history files
@@ -109,9 +112,7 @@ module med_phases_history_mod
      integer            :: num_auxfiles  = 0       ! actual number of auxiliary files
      logical            :: init_auxfiles = .false. ! if auxfile initial has occured
   end type auxcomp_type
-  type(auxcomp_type) , public :: auxcomp(ncomps)
-
-  !logical :: init_auxfiles(ncomps) = .false.   ! if true, auxfiles has been initialized for the component
+  type(auxcomp_type), allocatable, public :: auxcomp(:)
 
   ! ----------------------------
   ! Other private module variables
@@ -130,6 +131,14 @@ module med_phases_history_mod
 contains
 !===============================================================================
 
+  subroutine med_phases_history_init()
+    ! allocate module memory
+    allocate(instfiles(ncomps))
+    allocate(avgfiles(ncomps))
+    allocate(auxcomp(ncomps))
+  end subroutine med_phases_history_init
+
+  !===============================================================================
   subroutine med_phases_history_write(gcomp, rc)
 
     ! --------------------------------------
@@ -139,7 +148,7 @@ contains
     use med_io_mod, only : med_io_write_time, med_io_define_time
     use ESMF      , only : ESMF_Alarm, ESMF_AlarmSet
     use ESMF      , only : ESMF_FieldBundleIsCreated
-    use esmflds   , only : compocn, compatm
+    use med_internalstate_mod, only : compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -369,7 +378,7 @@ contains
 
     use ESMF      , only : ESMF_FieldBundleIsCreated
     use med_io_mod, only : med_io_write_time, med_io_define_time
-    use esmFlds   , only : compmed, compocn, compatm
+    use med_internalstate_mod, only : compmed, compocn, compatm
 
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
@@ -506,7 +515,7 @@ contains
 
     ! Write yearly average of lnd -> glc fields
 
-    use esmFlds           , only : complnd
+    use med_internalstate_mod, only : complnd
     use med_constants_mod , only : SecPerDay => med_constants_SecPerDay
     use med_io_mod        , only : med_io_write_time, med_io_define_time
     use med_io_mod        , only : med_io_date2yyyymmdd, med_io_sec2hms, med_io_ymd2date
@@ -887,7 +896,7 @@ contains
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_import)) then
              call med_methods_FB_init(avgfile%FBaccum_import, scalar_name, &
-                  FBgeom=is_local%wrap%FBImp(compid,compid), FBflds=is_local%wrap%FBimp(compid,compid), rc=rc)
+                  STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_import, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -896,7 +905,7 @@ contains
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_export)) then
              call med_methods_FB_init(avgfile%FBaccum_export, scalar_name, &
-                  FBgeom=is_local%wrap%FBExp(compid), FBflds=is_local%wrap%FBexp(compid), rc=rc)
+                  STgeom=is_local%wrap%NStateExp(compid), STflds=is_local%wrap%NStateExp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_export, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1012,6 +1021,7 @@ contains
     ! -----------------------------
 
     use ESMF             , only : ESMF_FieldBundleIsCreated, ESMF_FieldBundleRemove
+    use ESMF             , only : ESMF_Field, ESMF_FieldGet !DEBUG
     use med_constants_mod, only : czero => med_constants_czero
     use med_io_mod       , only : med_io_write_time, med_io_define_time
     use med_methods_mod  , only : med_methods_FB_init
@@ -1157,7 +1167,8 @@ contains
                 if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compid,compid)) .and. .not. &
                      ESMF_FieldBundleIsCreated(auxcomp%files(nfcnt)%FBaccum)) then
                    call med_methods_FB_init(auxcomp%files(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
-                        FBgeom=is_local%wrap%FBImp(compid,compid), FBflds=is_local%wrap%FBImp(compid,compid), rc=rc)
+                        STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), &
+                        rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                    call med_methods_FB_reset(auxcomp%files(nfcnt)%FBaccum, czero, rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1248,12 +1259,6 @@ contains
        ! Write time sample to file
        if ( write_now ) then
 
-          ! Determine time_val and tbnds data for history as well as history file name
-          call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
-               time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, &
-               auxname=auxcomp%files(nf)%auxname, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
           ! Set shorthand variables
           nx = is_local%wrap%nx(compid)
           ny = is_local%wrap%ny(compid)
@@ -1261,8 +1266,21 @@ contains
           ! Increment number of time samples on file
           auxcomp%files(nf)%nt = auxcomp%files(nf)%nt + 1
 
+          ! Determine time_val and tbnds data for history as well as history file name
+          if (auxcomp%files(nf)%nt == 1) then
+             call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
+                  time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, &
+                  auxname=auxcomp%files(nf)%auxname, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+             call med_phases_history_set_timeinfo(gcomp, auxcomp%files(nf)%clock, auxcomp%files(nf)%alarmname, &
+                  time_val, time_bnds, time_units, auxcomp%files(nf)%histfile, auxcomp%files(nf)%doavg, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          end if
+
           ! Write  header
           if (auxcomp%files(nf)%nt == 1) then
+
              ! open file
              call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1304,6 +1322,8 @@ contains
 
           ! Close file
           if (auxcomp%files(nf)%nt == auxcomp%files(nf)%ntperfile) then
+             call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
              call med_io_close(auxcomp%files(nf)%histfile, vm, file_ind=nf,  rc=rc)
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
              auxcomp%files(nf)%nt = 0
@@ -1397,30 +1417,48 @@ contains
     integer                :: n
     type(ESMF_Field)       :: lfield
     type(ESMF_Field)       :: lfield_accum
+    integer                :: fieldCount_accum
+    character(CL), pointer :: fieldnames_accum(:)
     integer                :: fieldCount
     character(CL), pointer :: fieldnames(:)
     real(r8), pointer      :: dataptr1d(:)
     real(r8), pointer      :: dataptr2d(:,:)
     real(r8), pointer      :: dataptr1d_accum(:)
     real(r8), pointer      :: dataptr2d_accum(:,:)
+    integer                :: ungriddedUBound_accum(1)
     integer                :: ungriddedUBound(1)
+    character(len=64)      :: msg
     !---------------------------------------
 
     rc = ESMF_SUCCESS
 
-    ! Accumulate field
-    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount, rc=rc)
+    ! Loop over field names in fldbun_accum
+
+    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount_accum, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    allocate(fieldnames(fieldCount))
-    call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames, rc=rc)
+    allocate(fieldnames_accum(fieldCount_accum))
+    call ESMF_FieldBundleGet(fldbun_accum, fieldCount=fieldCount_accum, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    do n = 1, fieldcount
-       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames(n)), field=lfield, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames(n)), field=lfield_accum, rc=rc)
+    call ESMF_FieldBundleGet(fldbun_accum, fieldNameList=fieldnames_accum, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+    do n = 1, fieldcount_accum
+       call ESMF_FieldBundleGet(fldbun, fieldName=trim(fieldnames_accum(n)), field=lfield, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_FieldGet(lfield, ungriddedUBound=ungriddedUBound, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_FieldBundleGet(fldbun_accum, fieldName=trim(fieldnames_accum(n)), field=lfield_accum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_FieldGet(lfield_accum, ungriddedUBound=ungriddedUBound_accum, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+
+       if (ungriddedUBound(1) /= ungriddedUBound_accum(1)) then
+          call ESMF_LogWrite(" upper bounds for field and field_accum do not match", &
+               ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+          rc = ESMF_FAILURE
+       end if
+
        if (ungriddedUBound(1) > 0) then
           call ESMF_FieldGet(lfield, farrayptr=dataptr2d, rc=rc)
           if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1435,7 +1473,7 @@ contains
           dataptr1d_accum(:) = dataptr1d_accum(:) + dataptr1d(:)
        end if
     end do
-    deallocate(fieldnames)
+    deallocate(fieldnames_accum)
 
     ! Accumulate counter
     count = count + 1
