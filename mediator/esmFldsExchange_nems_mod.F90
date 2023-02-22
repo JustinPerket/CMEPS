@@ -855,11 +855,6 @@ contains
     deallocate(flds)
 
     !!! JP moved from original area on my branch. Needs review and cleanup
-    ! JP temp testing
-    call addfld(fldListFr(compatm)%flds, 'foo_atm2lndfield')
-    call addfld(fldListTo(complnd)%flds, 'foo_atm2lndfield')
-    call addmap(fldListFr(compatm)%flds, 'foo_atm2lndfield', complnd, maptype, 'none', 'unset')    
-    call addmrg(fldListTo(complnd)%flds, 'foo_atm2lndfield', mrg_from=compatm, mrg_fld='foo_atm2lndfield', mrg_type='copy')
 
        
     allocate(flds(41))
@@ -878,8 +873,8 @@ contains
          'Faxa_prsl1       ', &
          'Faxa_prslki      ', &
          'Faxa_zf          ', &
-         'Faxa_land        ', &
-         'Faxa_slopetyp    ', &
+         !'Faxa_land        ', &
+         !'Faxa_slopetyp    ', &
          'Faxa_shdmin      ', &
          'Faxa_shdmax      ', &
          'Faxa_snoalb      ', &
