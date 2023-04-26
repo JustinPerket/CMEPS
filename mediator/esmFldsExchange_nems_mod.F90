@@ -851,66 +851,23 @@ contains
 
     ! to lnd - states and fluxes from atm
 
-    if ( trim(lnd_name) == 'lm4') then
-      ! TODO: remove unnecessary fields
-      allocate(flds(41))
-      flds=(/ &
-           'Faxa_soiltyp     ', &
-           'Faxa_vegtype     ', &
-           'Faxa_sigmaf      ', &
-           'Faxa_sfcemis     ', &
-           'Faxa_dlwflx      ', &
-           'Faxa_dswsfc      ', &
-           'inst_down_sw_flx ', &
-           'Faxa_snet        ', &
-           'Faxa_tg3         ', &
-           'Faxa_cm          ', &
-           'Faxa_ch          ', &
-           'Faxa_prsl1       ', &
-           'Faxa_prslki      ', &
-           'Faxa_zf          ', &
-           !'Faxa_land        ', &
-           !'Faxa_slopetyp    ', &
-           'Faxa_shdmin      ', &
-           'Faxa_shdmax      ', &
-           'Faxa_snoalb      ', &
-           'Faxa_sfalb       ', &
-           'Faxa_bexppert    ', &
-           'Faxa_xlaipert    ', &
-           'Faxa_vegfpert    ', &
-           'Faxa_prsik1      ', &
-           'Faxa_sfalb       ', &
-           'Faxa_weasd       ', &
-           'Faxa_snwdph      ', &
-           'Faxa_tskin       ', &
-           'Faxa_tprcp       ', &
-           'Faxa_srflag      ', &
-           ! 'Faxa_smc         ', &
-           ! 'Faxa_stc         ', &
-           ! 'Faxa_slc         ', &
-           'Faxa_canopy      ', &
-           'Faxa_trans       ', &
-           'Faxa_tsurf       ', &
-           'Faxa_z0rl        ', &
-           'Faxa_z0pert      ', &
-           'Faxa_ztpert      ', &
-           'Faxa_ustar       ', &       
-           'Faxa_wind        ',  &       
-           'Faxa_ps          ',  &       
-           'Faxa_t1          ',  &       
-           'Faxa_q1          ',  &       
-           'Faxa_albdvis_lnd ', &
-           'Faxa_albdnir_lnd ', &
-           'Faxa_albivis_lnd ', &
-           'Faxa_albinir_lnd ', &
-           'Faxa_adjvisbmd   ', &
-           'Faxa_adjnirbmd   ', &
-           'Faxa_adjvisdfd   ', &
-           'Faxa_adjnirdfd   ', &
-           'Faxa_prslk1      ', &
-           'Faxa_thsfc_loc   ', &
-           'Faxa_garea       '  &         
-           /)
+    if ( trim(lnd_name) == 'lm4') then 
+      if ( trim(coupling_mode) == 'nems_orig_data') then
+         allocate(flds(21))
+         flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                  'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                  'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+                  'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+                  'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+                  'Faxa_swnet'/)
+      else
+         allocate(flds(18))
+         flds = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
+                  'Sa_ua     ', 'Sa_va     ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                  'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'vfrac     ', &
+                  'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
+                  'Sa_ustar  ', 'zorl      ' /)
+      end if
     else ! if land model is noahmp, or other cases
      
       if ( trim(coupling_mode) == 'nems_orig_data') then
