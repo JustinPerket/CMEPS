@@ -282,47 +282,9 @@ contains
     ! to atm: unmerged fields from lnd    
     if (lnd_name == 'lm4') then
       call ESMF_LogWrite( trim(subname)//': Fields from LM4', ESMF_LOGMSG_INFO)
-      ! TODO: remove unnecessary fields, determine what needs to be merged / left unmerged
-      allocate(flds(37))
-      flds=(/ &
-           'Fall_weasd ', &         ! inouts
-           'Fall_snwdph', &
-           'Fall_tskin ', &
-           'Fall_tprcp ', &
-           'Fall_srflag', &
-           'Fall_smc   ', &
-           'Fall_stc   ', &
-           'Fall_slc   ', &
-           'Fall_canopy', &
-           'Fall_trans ', &
-           'Fall_tsurf ', &
-           'Fall_z0rl  ', &
-           'Fall_sncovr1', &         ! noahouts
-           'Fall_qsurf  ', &
-           'Fall_gflux  ', &
-           'Fall_drain  ', &
-           'Fall_evap   ', &
-           'Fall_hflx   ', &
-           'Fall_ep     ', &
-           'Fall_runoff ', &
-           'Fall_cmm    ', &
-           'Fall_chh    ', &
-           'Fall_evbs   ', &
-           'Fall_evcw   ', &
-           'Fall_sbsno  ', &
-           'Fall_snowc  ', &
-           'Fall_stm    ', &
-           'Fall_snohf  ', &
-           'Fall_smcwlt2', &
-           'Fall_smcref2', &
-           'Fall_wet1   ', &
-           'Fall_rb_lnd  ', &         ! diffouts
-           'Fall_fm_lnd  ', &
-           'Fall_fh_lnd  ', &
-           'Fall_fm10_lnd', &
-           'Fall_fh2_lnd ', &
-           'Fall_stress  '  &
-           /)
+      allocate(flds(1))
+      flds=(/ 'Sl_lfrin' &
+      /)
   
       do n = 1,size(flds)
          fldname = trim(flds(n))
