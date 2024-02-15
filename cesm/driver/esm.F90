@@ -1042,7 +1042,6 @@ contains
        end if
 #endif
 #ifdef LND_PRESENT
-       write (*, *) "JP debug in esm.F90"
        if (trim(compLabels(i)) .eq. 'LND') then
 #ifdef ESMF_AWARE_THREADING
           call NUOPC_DriverAddComp(driver, trim(compLabels(i)), LNDSetServices, LNDSetVM, &
@@ -1518,6 +1517,7 @@ contains
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
+
     call shr_log_setLogunit(logunit)
     call ESMF_GridCompGet(driver, vm=vm, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
