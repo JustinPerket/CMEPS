@@ -801,17 +801,34 @@ contains
     ! to lnd - states and fluxes from atm
     if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
        allocate(flds(21))
-       flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-                'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Sa_pslv   ', &
-                'Faxa_lwdn ', 'Faxa_swdn ', 'Faxa_snowc', 'Faxa_snowl', &
-                'Faxa_rainc', 'Faxa_rainl', 'Faxa_rain ', 'Faxa_swnet'/)
+       if (lnd_name == 'lm4') then
+         flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                  'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                  'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+                  'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+                  'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+                  'Faxa_swnet'/)
+       else ! if noah or other       
+         flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                  'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Sa_pslv   ', &
+                  'Faxa_lwdn ', 'Faxa_swdn ', 'Faxa_snowc', 'Faxa_snowl', &
+                  'Faxa_rainc', 'Faxa_rainl', 'Faxa_rain ', 'Faxa_swnet'/)
+       endif
     else
        allocate(flds(18))
-       flds = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
-                'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
-                'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'Sa_vfrac  ', &
-                'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
-                'Sa_ustar  ', 'Sa_zorl   ' /)
+       if (lnd_name == 'lm4') then
+         flds = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
+                  'Sa_ua     ', 'Sa_va     ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                  'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'vfrac     ', &
+                  'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
+                  'Sa_ustar  ', 'zorl      ' /)
+       else ! if noah or other 
+         flds = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
+                  'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                  'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'Sa_vfrac  ', &
+                  'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
+                  'Sa_ustar  ', 'Sa_zorl   ' /)
+        endif
     end if
     do n = 1,size(flds)
        fldname = trim(flds(n))
