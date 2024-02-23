@@ -286,43 +286,6 @@ contains
        deallocate(flds)
     end if
 
-    ! to atm: unmerged fields from lnd    
-    if (lnd_name == 'lm4') then
-      call ESMF_LogWrite( trim(subname)//': Fields from LM4', ESMF_LOGMSG_INFO)
-      allocate(flds(1))
-      flds=(/ 'Sl_lfrin' &
-      /)
-  
-      do n = 1,size(flds)
-         fldname = trim(flds(n))
-
-         if (phase == 'advertise') then
-            if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
-               call addfld_from(complnd,  trim(fldname))
-               call addfld_to(compatm,  trim(fldname))
-            end if
-         else
-            if ( fldchk(is_local%wrap%FBexp(compatm)        ,  trim(fldname), rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(complnd,complnd),  trim(fldname), rc=rc)) then
-               call addmap_from(complnd,  trim(fldname), compatm, maptype, 'lfrin', 'unset')
-               call addmrg_to(compatm,  trim(fldname), mrg_from=complnd, mrg_fld= trim(fldname), mrg_type='copy')
-            end if
-         end if
-
-      end do
-
-      deallocate(flds)
-
-      
-
-    elseif (lnd_name == 'noahmp') then
-      call ESMF_LogWrite( trim(subname)//': Fields from NoahMP', ESMF_LOGMSG_INFO)
-    else
-      call ESMF_LogWrite( trim(subname)//': Active lnd_model is not LM4 or NoahMP', ESMF_LOGMSG_INFO)
-    end if
-
-    
-
     ! to atm: unmerged from mediator, merge will be done under FV3/CCPP composite step
     ! - zonal surface stress, meridional surface stress
     ! - surface latent heat flux,
@@ -362,15 +325,6 @@ contains
        end if
     end if
 
-
-!!! JP: should revesit and clean up
-    ! to atm: unmerged from land
-
-
-
-
-        
-!!!    
     !=====================================================================
     ! FIELDS TO OCEAN (compocn)
     !=====================================================================
@@ -633,8 +587,6 @@ contains
     ! - rain from atm
     ! - snow from atm
 
-
-    
     allocate(flds(7))
     flds = (/'Faxa_lwdn ', 'Faxa_swndr', 'Faxa_swvdr', 'Faxa_swndf', 'Faxa_swvdf', &
              'Faxa_rain ', 'Faxa_snow '/)
