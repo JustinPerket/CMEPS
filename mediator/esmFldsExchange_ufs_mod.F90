@@ -752,6 +752,16 @@ contains
     !=====================================================================
 
     ! to lnd - states and fluxes from atm
+    lflds_common         = (/'Faxa_lwdn', 'Faxa_rainc', 'Faxa_swdn', &
+                             'Faxa_swnet', 'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_z'/)
+    lfds_aoflux          = (/'Faxa_rainl', 'Faxa_snowc', 'Faxa_snowl', 'Sa_pbot', 'Sa_shum', 'Sa_tbot', 'Sa_topo'/)
+    lfds_aoflux_lm4      = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr', 'Sa_dens', 'Sa_ptem'/)
+    lfds_aoflux_noah     = (/'Faxa_rain'/)
+    lfds_not_aoflux      = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr', 'Sa_dens', 'Sa_ptem'/)
+    lfds_not_aoflux_lm4  = (/'vfrac', 'zorl'/)
+    lfds_not_aoflux_noah  = (/'Sa_vfrac', 'Sa_zorl'/)
+
+
     if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
        allocate(flds(21))
        if (lnd_name == 'lm4') then
