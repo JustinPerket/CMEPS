@@ -765,33 +765,45 @@ contains
 
     !! Try just adding the SW bands if lm4 is used 
 
-   if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
+     if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
       allocate(lflds_common(16))
-      lflds_common = (/'Faxa_lwdn','Faxa_rain','Faxa_rainc','Faxa_rainl',   &
-                       'Faxa_snowc','Faxa_snowl', 'Faxa_swdn','Faxa_swnet', &
-                       'Sa_pbot','Sa_pslv','Sa_shum','Sa_tbot','Sa_topo', 'Sa_u','Sa_v','Sa_z'/)
+      lflds_common = (/'Faxa_lwdn  ','Faxa_rain  ','Faxa_rainc ','Faxa_rainl ', &
+                       'Faxa_snowc ','Faxa_snowl ','Faxa_swdn  ','Faxa_swnet ', &
+                       'Sa_pbot    ','Sa_pslv    ','Sa_shum    ','Sa_tbot    ', &
+                       'Sa_topo    ','Sa_u       ','Sa_v       ','Sa_z       '/)
 
       if (lnd_name == 'lm4') then
          allocate(lfds_additional(4))
-         lfds_additional = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr'/)
+         lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
       else ! if noah or other
          ! no additional fields
+
       end if
    else ! other coupling modes
-      lflds_common = (/'Faxa_lwdn', 'Faxa_rain', 'Faxa_rainc', 'Faxa_snow', 'Faxa_swdn', 'Faxa_swnet', &
-                       'Sa_pslv', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_u', 'Sa_ustar', 'Sa_v', 'Sa_z'/)       
+      allocate(lflds_common(14))
+      lflds_common = (/'Faxa_lwdn  ', 'Faxa_rain  ', 'Faxa_rainc ', 'Faxa_snow  ', &
+                       'Faxa_swdn  ', 'Faxa_swnet ', 'Sa_pslv    ', 'Sa_qa      ', &
+                       'Sa_ta      ', 'Sa_tskn    ', 'Sa_u       ', 'Sa_ustar   ', &
+                       'Sa_v       ', 'Sa_z       '/)
       if (lnd_name == 'lm4') then
          allocate(lfds_additional(4))
-         lfds_additional = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr'/)
+         lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
       else ! if noah or other
          allocate(lfds_additional(8))
-         lfds_additional = (/'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar', 'Sa_vfrac', 'Sa_zorl'/)
-       endif
+         lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
+                             'Sa_tskn    ', 'Sa_ustar   ', 'Sa_vfrac   ', 'Sa_zorl    '/)
+      endif
    endif
 
-   ! add lflds_common and lfds_additional
-   allocate(flds( size(lflds_common) + size(lfds_additional) ))
-   flds = lflds_common // lfds_additional
+   ! add lflds_common and lfds_additional, if lfds_additional got allocated
+   if (allocated(lfds_additional)) then
+      allocate(flds( size(lflds_common) + size(lfds_additional) ))
+      flds = [lflds_common, lfds_additional]
+      deallocate(lfds_additional)
+   else
+      allocate(flds( size(lflds_common) ))
+      flds = lflds_common
+   endif
 
    do n = 1,size(flds)
       fldname = trim(flds(n))
