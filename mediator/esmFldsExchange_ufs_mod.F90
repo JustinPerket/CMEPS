@@ -721,106 +721,96 @@ contains
               call addmrg_to(compwav, fldname, mrg_from=compice, mrg_fld=fldname, mrg_type='copy')
            end if
         end if
-      end do
-      deallocate(flds)
-
-      ! to wav: states from ocn
-      ! - zonal sea water velocity from ocn
-      ! - meridional sea water velocity from ocn
-      ! - surface temperature from ocn
-      allocate(flds(3))
-      flds = (/'So_u', 'So_v', 'So_t'/)
-      do n = 1,size(flds)
-         fldname = trim(flds(n))
-         if (phase == 'advertise') then
-            if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
-               call addfld_from(compocn , fldname)
-               call addfld_to(compwav   , fldname)
-            end if
-         else
-            if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
-                 fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
-               call addmap_from(compocn, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
-              call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
-           end if
-        end if
      end do
      deallocate(flds)
 
-    !=====================================================================
-    ! FIELDS TO LAND (complnd)
-    !=====================================================================
+     ! to wav: states from ocn
+     ! - zonal sea water velocity from ocn
+     ! - meridional sea water velocity from ocn
+     ! - surface temperature from ocn
+     allocate(flds(3))
+     flds = (/'So_u', 'So_v', 'So_t'/)
+     do n = 1,size(flds)
+        fldname = trim(flds(n))
+        if (phase == 'advertise') then
+           if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
+              call addfld_from(compocn , fldname)
+              call addfld_to(compwav   , fldname)
+           end if
+        else
+           if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
+                fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
+              call addmap_from(compocn, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
+             call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
+          end if
+       end if
+     end do
+     deallocate(flds)
 
-    ! to lnd - states and fluxes from atm
-   !  lflds_common         = (/'Faxa_lwdn', 'Faxa_rainc', 'Faxa_swdn', 'Faxa_swnet', 'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_z'/)
-   !  lfds_aoflux          = (/'Faxa_rainl', 'Faxa_snowc', 'Faxa_snowl', 'Sa_pbot', 'Sa_shum', 'Sa_tbot', 'Sa_topo'/)
-   !  lfds_aoflux_lm4      = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr'/)
-   !  lfds_aoflux_noah     = (/'Faxa_rain'/)
-   !  lfds_not_aoflux      = (/'Faxa_rain', 'Faxa_snow', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar'/)
-   ! !  lfds_not_aoflux_lm4  = (/'Sa_vfrac', 'Sa_zorl'/) ! renamed, but not used anyways
-   !  lfds_not_aoflux_noah  = (/'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar', 'Sa_vfrac', 'Sa_zorl'/)
-
-    ! Note LM4 is not currently using Sa_dens, Sa_ptem, Sa_vfrac, Sa_zorl, 'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar'
-    ! but needs SW bands
-
-    !! Try just adding the SW bands if lm4 is used 
-
+     !=====================================================================
+     ! FIELDS TO LAND (complnd)
+     !=====================================================================  
+     ! to lnd - states and fluxes from atm
+     !  lflds_common         = (/'Faxa_lwdn', 'Faxa_rainc', 'Faxa_swdn', 'Faxa_swnet', 'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_z'/)
+     !  lfds_aoflux          = (/'Faxa_rainl', 'Faxa_snowc', 'Faxa_snowl', 'Sa_pbot', 'Sa_shum', 'Sa_tbot', 'Sa_topo'/)
+     !  lfds_aoflux_lm4      = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr'/)
+     !  lfds_aoflux_noah     = (/'Faxa_rain'/)
+     !  lfds_not_aoflux      = (/'Faxa_rain', 'Faxa_snow', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar'/)
+     ! !  lfds_not_aoflux_lm4  = (/'Sa_vfrac', 'Sa_zorl'/) ! renamed, but not used anyways
+     !  lfds_not_aoflux_noah  = (/'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar', 'Sa_vfrac', 'Sa_zorl'/)  
+     ! Note LM4 is not currently using Sa_dens, Sa_ptem, Sa_vfrac, Sa_zorl, 'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar'
+     ! but needs SW bands  
+     !! Try just adding the SW bands if lm4 is used   
      if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
-      allocate(lflds_common(16))
-      lflds_common = (/'Faxa_lwdn  ','Faxa_rain  ','Faxa_rainc ','Faxa_rainl ', &
-                       'Faxa_snowc ','Faxa_snowl ','Faxa_swdn  ','Faxa_swnet ', &
-                       'Sa_pbot    ','Sa_pslv    ','Sa_shum    ','Sa_tbot    ', &
-                       'Sa_topo    ','Sa_u       ','Sa_v       ','Sa_z       '/)
+        allocate(lflds_common(16))
+        lflds_common = (/'Faxa_lwdn  ','Faxa_rain  ','Faxa_rainc ','Faxa_rainl ', &
+                         'Faxa_snowc ','Faxa_snowl ','Faxa_swdn  ','Faxa_swnet ', &
+                         'Sa_pbot    ','Sa_pslv    ','Sa_shum    ','Sa_tbot    ', &
+                         'Sa_topo    ','Sa_u       ','Sa_v       ','Sa_z       '/)  
+     else ! other coupling modes
+        allocate(lflds_common(14))
+        lflds_common = (/'Faxa_lwdn  ', 'Faxa_rain  ', 'Faxa_rainc ', 'Faxa_snow  ', &
+                         'Faxa_swdn  ', 'Faxa_swnet ', 'Sa_pslv    ', 'Sa_qa      ', &
+                         'Sa_ta      ', 'Sa_tskn    ', 'Sa_u       ', 'Sa_ustar   ', &
+                         'Sa_v       ', 'Sa_z       '/)
+     endif  
+     if (lnd_name == 'lm4') then 
+        ! lm4 needs seperate SW bands
+        allocate(lfds_additional(4))
+        lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
+     elseif ( trim(coupling_mode) .not. 'ufs.nfrac.aoflux') then
+        ! noah needs additional fields if not using ufs.nfrac.aoflux
+        allocate(lfds_additional(8))
+        lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
+                          'Sa_tskn    ', 'Sa_ustar   ', 'Sa_vfrac   ', 'Sa_zorl    '/)
+     endif
 
-      if (lnd_name == 'lm4') then
-         allocate(lfds_additional(4))
-         lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
-      else ! if noah or other
-         ! no additional fields
+     ! add lflds_common and lfds_additional, if lfds_additional got allocated
+     if (allocated(lfds_additional)) then
+        allocate(flds( size(lflds_common) + size(lfds_additional) ))
+        flds = [lflds_common, lfds_additional]
+        deallocate(lfds_additional)
+     else
+        allocate(flds( size(lflds_common) ))
+        flds = lflds_common
+     endif
+  
+     do n = 1,size(flds)
+        fldname = trim(flds(n))
+        if (phase == 'advertise') then
+           if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
+              call addfld_from(compatm , fldname)
+              call addfld_to(complnd   , fldname)
+           end if
+        else
+           if ( fldchk(is_local%wrap%FBexp(complnd)        , fldname, rc=rc) .and. &
+              fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
+              call addmap_from(compatm, fldname, complnd, maptype, 'one', 'unset')
+              call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
+           end if
+        end if
+     end do
 
-      end if
-   else ! other coupling modes
-      allocate(lflds_common(14))
-      lflds_common = (/'Faxa_lwdn  ', 'Faxa_rain  ', 'Faxa_rainc ', 'Faxa_snow  ', &
-                       'Faxa_swdn  ', 'Faxa_swnet ', 'Sa_pslv    ', 'Sa_qa      ', &
-                       'Sa_ta      ', 'Sa_tskn    ', 'Sa_u       ', 'Sa_ustar   ', &
-                       'Sa_v       ', 'Sa_z       '/)
-      if (lnd_name == 'lm4') then
-         allocate(lfds_additional(4))
-         lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
-      else ! if noah or other
-         allocate(lfds_additional(8))
-         lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
-                             'Sa_tskn    ', 'Sa_ustar   ', 'Sa_vfrac   ', 'Sa_zorl    '/)
-      endif
-   endif
-
-   ! add lflds_common and lfds_additional, if lfds_additional got allocated
-   if (allocated(lfds_additional)) then
-      allocate(flds( size(lflds_common) + size(lfds_additional) ))
-      flds = [lflds_common, lfds_additional]
-      deallocate(lfds_additional)
-   else
-      allocate(flds( size(lflds_common) ))
-      flds = lflds_common
-   endif
-
-   do n = 1,size(flds)
-      fldname = trim(flds(n))
-      if (phase == 'advertise') then
-         if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
-            call addfld_from(compatm , fldname)
-            call addfld_to(complnd   , fldname)
-         end if
-      else
-         if ( fldchk(is_local%wrap%FBexp(complnd)        , fldname, rc=rc) .and. &
-            fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-            call addmap_from(compatm, fldname, complnd, maptype, 'one', 'unset')
-            call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
-         end if
-      end if
-   end do
-   
    deallocate(flds, lflds_common, lfds_additional)
 
   end subroutine esmFldsExchange_ufs
