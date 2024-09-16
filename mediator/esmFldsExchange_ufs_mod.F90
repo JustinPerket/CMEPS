@@ -782,7 +782,7 @@ contains
         ! noah needs additional fields if not using ufs.nfrac.aoflux
         allocate(lfds_additional(8))
         lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
-                          'Sa_tskn    ', 'Sa_ustar   ', 'Sa_vfrac   ', 'Sa_zorl    '/)
+                            'Sa_tskn    ', 'Sa_ustar   ', 'Sa_vfrac   ', 'Sa_zorl    '/)
      endif
 
      ! add lflds_common and lfds_additional, if lfds_additional got allocated
@@ -811,7 +811,7 @@ contains
         end if
      end do
 
-   deallocate(flds, lflds_common, lfds_additional)
+   deallocate(flds, lflds_common)
 
   end subroutine esmFldsExchange_ufs
 
