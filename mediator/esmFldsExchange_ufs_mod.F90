@@ -53,7 +53,7 @@ contains
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
-    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:), lflds_common, lflds_common
+    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:), lflds_common, lfds_additional
     character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
 
     ! component name
@@ -778,7 +778,7 @@ contains
         ! lm4 needs seperate SW bands
         allocate(lfds_additional(4))
         lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
-     elseif ( trim(coupling_mode) .not. 'ufs.nfrac.aoflux') then
+     elseif ( trim(coupling_mode) /= 'ufs.nfrac.aoflux') then
         ! noah needs additional fields if not using ufs.nfrac.aoflux
         allocate(lfds_additional(8))
         lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
