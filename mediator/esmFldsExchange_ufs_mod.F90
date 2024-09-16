@@ -53,7 +53,7 @@ contains
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
-    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:), lflds_common, lfds_additional
+    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:), lflds_common(:), lfds_additional(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
 
     ! component name
