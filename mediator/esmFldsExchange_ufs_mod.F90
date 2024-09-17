@@ -754,10 +754,9 @@ contains
      if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
         allocate(lflds_common(17))
         lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-                         'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-                         'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-                         'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-                         'Faxa_swnet'/)
+                         'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Sa_pslv   ', &
+                         'Faxa_lwdn ', 'Faxa_swdn ', 'Faxa_snowc', 'Faxa_snowl', &
+                         'Faxa_rainc', 'Faxa_rainl', 'Faxa_swnet'/)
      
      else
         allocate(lflds_common(18))
