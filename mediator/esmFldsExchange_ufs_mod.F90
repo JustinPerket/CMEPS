@@ -53,7 +53,7 @@ contains
     character(len=CX)   :: msgString
     character(len=CL)   :: cvalue
     character(len=CS)   :: fldname
-    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:), lflds_common(:), lfds_additional(:)
+    character(len=CS), allocatable :: flds(:), oflds(:), aflds(:), iflds(:), lflds_common(:), lflds_additional(:)
     character(len=*) , parameter   :: subname='(esmFldsExchange_ufs)'
 
     ! component name
@@ -751,77 +751,59 @@ contains
      ! FIELDS TO LAND (complnd)
      !=====================================================================  
 
-     ! Original fields for lm4, ufs.nfrac.aoflux :
-   !   flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-   !   'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-   !   'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-   !   'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-   !   'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
-   !   'Faxa_swnet'/)
+   if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
+      allocate(lflds_common(17))
+      lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                       'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                       'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+                       'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+                       'Faxa_swnet'/)
+   
+   else
+      allocate(lflds_common(18))
+      lflds_common = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
+            'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+            'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'Sa_vfrac  ', &
+            'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
+            'Sa_ustar  ', 'Sa_zorl   ' /)
+   end if
 
-     if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
-        call ESMF_LogWrite('JP TEST:  ufs.nfrac.aoflux', ESMF_LOGMSG_INFO)
-        allocate(lflds_common(16))
-        lflds_common = (/'Faxa_lwdn  ','Faxa_rain  ','Faxa_rainc ','Faxa_rainl ', &
-                         'Faxa_snowc ','Faxa_snowl ','Faxa_swdn  ','Faxa_swnet ', &
-                         'Sa_pbot    ','Sa_pslv    ','Sa_shum    ','Sa_tbot    ', &
-                         'Sa_topo    ','Sa_u       ','Sa_v       ','Sa_z       '/)  
-     else ! other coupling modes
-        call ESMF_LogWrite('JP TEST:  other coupling modes', ESMF_LOGMSG_INFO)
-        allocate(lflds_common(14))
-        lflds_common = (/'Faxa_lwdn  ', 'Faxa_rain  ', 'Faxa_rainc ', 'Faxa_snow  ', &
-                         'Faxa_swdn  ', 'Faxa_swnet ', 'Sa_pslv    ', 'Sa_qa      ', &
-                         'Sa_ta      ', 'Sa_tskn    ', 'Sa_u       ', 'Sa_ustar   ', &
-                         'Sa_v       ', 'Sa_z       '/)
-     endif  
-     if (lnd_name == 'lm4') then 
-        call ESMF_LogWrite('JP TEST:  lm4', ESMF_LOGMSG_INFO)
-        ! lm4 needs seperate SW bands
-        allocate(lfds_additional(6))
-      !   lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
-        ! JP TMP TEST:
-        lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr ', &
-                            'Sa_ptem    ', 'Sa_dens    '/)
+   if (lnd_name == 'lm4') then
+      allocate (lflds_additional(4))
+      lflds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
+      ! append to flds
+   end if   
 
-     elseif ( trim(coupling_mode) /= 'ufs.nfrac.aoflux') then
-         call ESMF_LogWrite('JP TEST:  not lm4 and not ufs.nfrac.aoflux', ESMF_LOGMSG_INFO)
-        ! noah needs additional fields if not using ufs.nfrac.aoflux
-        allocate(lfds_additional(8))
-        lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
-                            'Sa_tskn    ', 'Sa_ustar   ', 'Sa_vfrac   ', 'Sa_zorl    '/)
-     endif
-
-     ! add lflds_common and lfds_additional, if lfds_additional got allocated
-     if (allocated(lfds_additional)) then
-        allocate(flds( size(lflds_common) + size(lfds_additional) ))
-        flds = [lflds_common, lfds_additional]
-        deallocate(lfds_additional)
-     else
-        allocate(flds( size(lflds_common) ))
-        flds = lflds_common
-     endif
   
-     ! JP TMP TEST
-   !   flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-   !   'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-   !   'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-   !   'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-   !   'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
-   !   'Faxa_swnet'/)
-     ! now try splitting the fields up, and rejoining them.
-     ! This also works
-   !   lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+   ! !   JP TMP TEST
+   ! !   flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+   ! !   'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+   ! !   'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+   ! !   'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+   ! !   'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+   ! !   'Faxa_swnet'/)
+   ! !   now try splitting the fields up, and rejoining them.
+
+   ! !   This also works
+   ! if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
+   !    if (lnd_name == 'lm4') then
+   !       allocate(lflds_common(17))
+   !       lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
    !                    'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
    !                    'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-   !                    'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl'/)
-   !    allocate(lfds_additional(5))
-   !    lfds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
-   !                         'Faxa_swnet'/)
-   !    allocate(flds( size(lflds_common) + size(lfds_additional) ))
-   !    flds = [lflds_common, lfds_additional]
-   !    deallocate(lfds_additional)
+   !                    'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+   !                    'Faxa_swnet'/)
+   !       allocate(lflds_additional(4))
+   !       lflds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
+   !    end if
+   ! end if      
 
-     ! JP END TMP TEST
+   allocate(flds( size(lflds_common) + size(lflds_additional) ))
+   flds = [lflds_common, lflds_additional]
+   deallocate(lflds_additional)
+
+
+     !JP END TMP TEST
 
 
      do n = 1,size(flds)
