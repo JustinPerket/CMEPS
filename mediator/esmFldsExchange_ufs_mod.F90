@@ -756,7 +756,7 @@ contains
         lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
                          'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Sa_pslv   ', &
                          'Faxa_lwdn ', 'Faxa_swdn ', 'Faxa_snowc', 'Faxa_snowl', &
-                         'Faxa_rainc', 'Faxa_rainl', 'Faxa_swnet'/)
+                         'Faxa_rainc', 'Faxa_rainl', 'Faxa_rain ', 'Faxa_swnet'/)
      
      else
         allocate(lflds_common(18))
