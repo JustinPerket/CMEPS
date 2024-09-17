@@ -751,64 +751,37 @@ contains
      ! FIELDS TO LAND (complnd)
      !=====================================================================  
 
-   if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
-      allocate(lflds_common(17))
-      lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-                       'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-                       'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-                       'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-                       'Faxa_swnet'/)
-   
-   else
-      allocate(lflds_common(18))
-      lflds_common = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
-            'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
-            'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'Sa_vfrac  ', &
-            'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
-            'Sa_ustar  ', 'Sa_zorl   ' /)
-   end if
-
-   if (lnd_name == 'lm4') then
-      allocate (lflds_additional(4))
-      lflds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
-      ! append to flds
-   end if   
-
+     if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
+        allocate(lflds_common(17))
+        lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+                         'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+                         'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+                         'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+                         'Faxa_swnet'/)
+     
+     else
+        allocate(lflds_common(18))
+        lflds_common = (/'Sa_z      ', 'Sa_ta     ', 'Sa_pslv   ', 'Sa_qa     ', &
+                         'Sa_u      ', 'Sa_v      ', 'Faxa_swdn ', 'Faxa_lwdn ', &
+                         'Faxa_swnet', 'Faxa_rain ', 'Sa_prsl   ', 'Sa_vfrac  ', &
+                         'Faxa_snow ', 'Faxa_rainc', 'Sa_tskn   ', 'Sa_exner  ', &
+                         'Sa_ustar  ', 'Sa_zorl   ' /)
+     end if
   
-   ! !   JP TMP TEST
-   ! !   flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-   ! !   'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-   ! !   'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-   ! !   'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-   ! !   'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
-   ! !   'Faxa_swnet'/)
-   ! !   now try splitting the fields up, and rejoining them.
+     if (lnd_name == 'lm4') then
+        allocate (lflds_additional(4))
+        lflds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
+        ! append to flds
+     end if   
+  
 
-   ! !   This also works
-   ! if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
-   !    if (lnd_name == 'lm4') then
-   !       allocate(lflds_common(17))
-   !       lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
-   !                    'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
-   !                    'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
-   !                    'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
-   !                    'Faxa_swnet'/)
-   !       allocate(lflds_additional(4))
-   !       lflds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
-   !    end if
-   ! end if      
-
-   allocate(flds( size(lflds_common) + size(lflds_additional) ))
-   flds = [lflds_common, lflds_additional]
-   deallocate(lflds_additional)
-
-
-     !JP END TMP TEST
+     allocate(flds( size(lflds_common) + size(lflds_additional) ))
+     flds = [lflds_common, lflds_additional]
+     deallocate(lflds_additional)
 
 
      do n = 1,size(flds)
         fldname = trim(flds(n))
-        call ESMF_LogWrite('JP TEST:  fldname = ' // fldname, ESMF_LOGMSG_INFO)
         if (phase == 'advertise') then
            if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
               call addfld_from(compatm , fldname)
