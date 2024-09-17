@@ -750,24 +750,24 @@ contains
      !=====================================================================
      ! FIELDS TO LAND (complnd)
      !=====================================================================  
-     ! to lnd - states and fluxes from atm
-     !  lflds_common         = (/'Faxa_lwdn', 'Faxa_rainc', 'Faxa_swdn', 'Faxa_swnet', 'Sa_pslv', 'Sa_u', 'Sa_v', 'Sa_z'/)
-     !  lfds_aoflux          = (/'Faxa_rainl', 'Faxa_snowc', 'Faxa_snowl', 'Sa_pbot', 'Sa_shum', 'Sa_tbot', 'Sa_topo'/)
-     !  lfds_aoflux_lm4      = (/'Faxa_swndf', 'Faxa_swndr', 'Faxa_swvdf', 'Faxa_swvdr'/)
-     !  lfds_aoflux_noah     = (/'Faxa_rain'/)
-     !  lfds_not_aoflux      = (/'Faxa_rain', 'Faxa_snow', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar'/)
-     ! !  lfds_not_aoflux_lm4  = (/'Sa_vfrac', 'Sa_zorl'/) ! renamed, but not used anyways
-     !  lfds_not_aoflux_noah  = (/'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar', 'Sa_vfrac', 'Sa_zorl'/)  
-     ! Note LM4 is not currently using Sa_dens, Sa_ptem, Sa_vfrac, Sa_zorl, 'Sa_exner', 'Sa_prsl', 'Sa_qa', 'Sa_ta', 'Sa_tskn', 'Sa_ustar'
-     ! but needs SW bands  
-     !! Try just adding the SW bands if lm4 is used   
+
+     ! Original fields for lm4, ufs.nfrac.aoflux :
+   !   flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+   !   'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+   !   'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+   !   'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+   !   'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+   !   'Faxa_swnet'/)
+
      if ( trim(coupling_mode) == 'ufs.nfrac.aoflux') then
+        call ESMF_LogWrite('JP TEST:  ufs.nfrac.aoflux', ESMF_LOGMSG_INFO)
         allocate(lflds_common(16))
         lflds_common = (/'Faxa_lwdn  ','Faxa_rain  ','Faxa_rainc ','Faxa_rainl ', &
                          'Faxa_snowc ','Faxa_snowl ','Faxa_swdn  ','Faxa_swnet ', &
                          'Sa_pbot    ','Sa_pslv    ','Sa_shum    ','Sa_tbot    ', &
                          'Sa_topo    ','Sa_u       ','Sa_v       ','Sa_z       '/)  
      else ! other coupling modes
+        call ESMF_LogWrite('JP TEST:  other coupling modes', ESMF_LOGMSG_INFO)
         allocate(lflds_common(14))
         lflds_common = (/'Faxa_lwdn  ', 'Faxa_rain  ', 'Faxa_rainc ', 'Faxa_snow  ', &
                          'Faxa_swdn  ', 'Faxa_swnet ', 'Sa_pslv    ', 'Sa_qa      ', &
@@ -775,10 +775,16 @@ contains
                          'Sa_v       ', 'Sa_z       '/)
      endif  
      if (lnd_name == 'lm4') then 
+        call ESMF_LogWrite('JP TEST:  lm4', ESMF_LOGMSG_INFO)
         ! lm4 needs seperate SW bands
-        allocate(lfds_additional(4))
-        lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
+        allocate(lfds_additional(6))
+      !   lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr '/)
+        ! JP TMP TEST:
+        lfds_additional = (/'Faxa_swndf ', 'Faxa_swndr ', 'Faxa_swvdf ', 'Faxa_swvdr ', &
+                            'Sa_ptem    ', 'Sa_dens    '/)
+
      elseif ( trim(coupling_mode) /= 'ufs.nfrac.aoflux') then
+         call ESMF_LogWrite('JP TEST:  not lm4 and not ufs.nfrac.aoflux', ESMF_LOGMSG_INFO)
         ! noah needs additional fields if not using ufs.nfrac.aoflux
         allocate(lfds_additional(8))
         lfds_additional = (/'Sa_exner   ', 'Sa_prsl    ', 'Sa_qa      ', 'Sa_ta      ', &
@@ -795,8 +801,32 @@ contains
         flds = lflds_common
      endif
   
+     ! JP TMP TEST
+   !   flds = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+   !   'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+   !   'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+   !   'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl', &
+   !   'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+   !   'Faxa_swnet'/)
+     ! now try splitting the fields up, and rejoining them.
+     ! This also works
+   !   lflds_common = (/'Sa_z      ', 'Sa_topo   ', 'Sa_tbot   ', 'Sa_pbot   ', &
+   !                    'Sa_shum   ', 'Sa_u      ', 'Sa_v      ', 'Faxa_lwdn ', &
+   !                    'Sa_ptem   ', 'Sa_dens   ', 'Faxa_swdn ', 'Sa_pslv   ', &
+   !                    'Faxa_snowc', 'Faxa_snowl', 'Faxa_rainc', 'Faxa_rainl'/)
+   !    allocate(lfds_additional(5))
+   !    lfds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf', &
+   !                         'Faxa_swnet'/)
+   !    allocate(flds( size(lflds_common) + size(lfds_additional) ))
+   !    flds = [lflds_common, lfds_additional]
+   !    deallocate(lfds_additional)
+
+     ! JP END TMP TEST
+
+
      do n = 1,size(flds)
         fldname = trim(flds(n))
+        call ESMF_LogWrite('JP TEST:  fldname = ' // fldname, ESMF_LOGMSG_INFO)
         if (phase == 'advertise') then
            if (is_local%wrap%comp_present(compatm) .and. is_local%wrap%comp_present(complnd)) then
               call addfld_from(compatm , fldname)
