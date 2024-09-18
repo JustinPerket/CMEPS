@@ -771,13 +771,12 @@ contains
         allocate (lflds_additional(4))
         lflds_additional = (/'Faxa_swndr', 'Faxa_swndf', 'Faxa_swvdr', 'Faxa_swvdf' /)
         ! append to flds
-     end if   
-  
-
-     allocate(flds( size(lflds_common) + size(lflds_additional) ))
-     flds = [lflds_common, lflds_additional]
-     deallocate(lflds_additional)
-
+        allocate(flds( size(lflds_common) + size(lflds_additional) ))
+        flds = [lflds_common, lflds_additional]
+        deallocate(lflds_additional, lflds_common)        
+     else
+        call move_alloc(lflds_common, flds)
+     end if
 
      do n = 1,size(flds)
         fldname = trim(flds(n))
@@ -795,7 +794,7 @@ contains
         end if
      end do
 
-   deallocate(flds, lflds_common)
+   deallocate(flds)
 
   end subroutine esmFldsExchange_ufs
 
