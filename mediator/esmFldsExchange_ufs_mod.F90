@@ -721,29 +721,29 @@ contains
               call addmrg_to(compwav, fldname, mrg_from=compice, mrg_fld=fldname, mrg_type='copy')
            end if
         end if
-     end do
-     deallocate(flds)
+      end do
+      deallocate(flds)
 
-     ! to wav: states from ocn
-     ! - zonal sea water velocity from ocn
-     ! - meridional sea water velocity from ocn
-     ! - surface temperature from ocn
-     allocate(flds(3))
-     flds = (/'So_u', 'So_v', 'So_t'/)
-     do n = 1,size(flds)
-        fldname = trim(flds(n))
-        if (phase == 'advertise') then
-           if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
-              call addfld_from(compocn , fldname)
-              call addfld_to(compwav   , fldname)
+      ! to wav: states from ocn
+      ! - zonal sea water velocity from ocn
+      ! - meridional sea water velocity from ocn
+      ! - surface temperature from ocn
+      allocate(flds(3))
+      flds = (/'So_u', 'So_v', 'So_t'/)
+      do n = 1,size(flds)
+         fldname = trim(flds(n))
+         if (phase == 'advertise') then
+            if (is_local%wrap%comp_present(compocn) .and. is_local%wrap%comp_present(compwav)) then
+               call addfld_from(compocn , fldname)
+               call addfld_to(compwav   , fldname)
+            end if
+         else
+            if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
+                 fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
+               call addmap_from(compocn, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
+              call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
            end if
-        else
-           if ( fldchk(is_local%wrap%FBexp(compwav)        , fldname, rc=rc) .and. &
-                fldchk(is_local%wrap%FBImp(compocn,compocn), fldname, rc=rc)) then
-              call addmap_from(compocn, fldname, compwav, mapbilnr_nstod , 'one', 'unset')
-             call addmrg_to(compwav, fldname, mrg_from=compocn, mrg_fld=fldname, mrg_type='copy')
-          end if
-       end if
+        end if
      end do
      deallocate(flds)
 
