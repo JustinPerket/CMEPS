@@ -810,7 +810,7 @@ contains
           else
              if ( fldchk(is_local%wrap%FBexp(complnd)        , fldname, rc=rc) .and. &
                   fldchk(is_local%wrap%FBImp(compatm,compatm), fldname, rc=rc)) then
-                call addmap_from(compatm, fldname, complnd, maptype, 'one', 'unset')
+                call addmap_from(compatm, fldname, complnd, atm2lnd_maptype, 'one', 'unset')
                 call addmrg_to(complnd, fldname, mrg_from=compatm, mrg_fld=fldname, mrg_type='copy')
              end if
           end if
