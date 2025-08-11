@@ -293,8 +293,15 @@ contains
 
     ! to atm: unmerged state variables from lnd
     if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
-       allocate(flds(7))
-       flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 'cmm  ', 'chh  ', 'zvfun' /)
+
+       if (trim(lnd_name) == 'lm4') then
+         allocate(flds(7))
+         flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 'cmm  ', 'chh  ', 'zvfun', 'avsdr', 'avsdf', 'anidr', 'anidf'/)
+       else
+         allocate(flds(7))
+         flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 'cmm  ', 'chh  ', 'zvfun'/)
+       end if
+
        if (phase == 'advertise') then
           do n = 1,size(flds)
              call addfld_from(complnd, 'Sl_'//trim(flds(n)))
