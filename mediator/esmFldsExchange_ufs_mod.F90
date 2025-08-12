@@ -296,7 +296,8 @@ contains
 
        if (trim(lnd_name) == 'lm4') then
          allocate(flds(7))
-         flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 'cmm  ', 'chh  ', 'zvfun', 'avsdr', 'avsdf', 'anidr', 'anidf'/)
+         flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 't    ', 'cmm  ', 'chh  ', 'zvfun', &
+                   'avsdr', 'avsdf', 'anidr', 'anidf'/)
        else
          allocate(flds(7))
          flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 'cmm  ', 'chh  ', 'zvfun'/)
