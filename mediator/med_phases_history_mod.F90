@@ -21,9 +21,12 @@ module med_phases_history_mod
   use med_internalstate_mod , only : ncomps, compname
   use med_internalstate_mod , only : InternalState, maintask, logunit
   use med_io_mod            , only : med_io_write, med_io_wopen, med_io_enddef, med_io_close
+  use med_field_info_mod    , only : med_field_info_type, med_field_info_array_from_state
   use perf_mod              , only : t_startf, t_stopf
   use pio                   , only : file_desc_t
   use shr_log_mod           , only : shr_log_error
+  use med_ufs_trace_wrapper_mod, only : ufs_trace_wrapper
+
   implicit none
   private
 
@@ -188,6 +191,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write", "B")
     call t_startf('MED:'//subname)
 
     ! Get the internal state
@@ -383,6 +387,7 @@ contains
 
     call t_stopf('MED:'//subname)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write", "E")
   end subroutine med_phases_history_write
 
   !===============================================================================
@@ -420,6 +425,7 @@ contains
     character(len=*), parameter :: subname='(med_phases_history_write_med)'
     !---------------------------------------
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write_med", "B")
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -526,6 +532,7 @@ contains
        end if ! end of if-write_now block
     end if  ! end of if-active block
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write_med", "E")
   end subroutine med_phases_history_write_med
 
   !===============================================================================
@@ -567,6 +574,7 @@ contains
     !---------------------------------------
 
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write_lnd2glc", "B")
 
     ! Get the internal state
     nullify(is_local%wrap)
@@ -655,6 +663,7 @@ contains
     call med_io_close(io_file, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write_lnd2glc", "E")
   end subroutine med_phases_history_write_lnd2glc
 
   !===============================================================================
@@ -668,6 +677,7 @@ contains
     integer            , intent(out)   :: rc
     !---------------------------------------
     rc = ESMF_SUCCESS
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write_comp", "B")
 
     call med_phases_history_write_comp_inst(gcomp, compid, instfiles(compid), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -676,6 +686,7 @@ contains
     call med_phases_history_write_comp_aux(gcomp, compid, auxcomp(compid), rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "med_phases_history_write_comp", "E")
   end subroutine med_phases_history_write_comp
 
   !===============================================================================
@@ -843,6 +854,7 @@ contains
 
     ! local variables
     type(InternalState)     :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     character(CL)           :: cvalue        ! attribute string
     character(CL)           :: hist_option   ! freq_option setting (ndays, nsteps, etc)
     integer                 :: hist_n        ! freq_n setting relative to freq_option
@@ -907,8 +919,13 @@ contains
           scalar_name = trim(is_local%wrap%flds_scalar_name)
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBimp(compid,compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_import)) then
+             call med_field_info_array_from_state( &
+                  state = is_local%wrap%NStateImp(compid), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_init(avgfile%FBaccum_import, scalar_name, &
-                  STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), rc=rc)
+                  field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_import, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -916,8 +933,13 @@ contains
           end if
           if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBexp(compid)) .and. .not. &
                ESMF_FieldBundleIsCreated(avgfile%FBaccum_export)) then
+             call med_field_info_array_from_state( &
+                  state = is_local%wrap%NStateExp(compid), &
+                  field_info_array = field_info_array, &
+                  rc = rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_init(avgfile%FBaccum_export, scalar_name, &
-                  STgeom=is_local%wrap%NStateExp(compid), STflds=is_local%wrap%NStateExp(compid), rc=rc)
+                  field_info_array=field_info_array, STgeom=is_local%wrap%NStateExp(compid), rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
              call med_methods_FB_reset(avgfile%FBaccum_export, czero, rc=rc)
              if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -1050,6 +1072,7 @@ contains
 
     ! local variables
     type(InternalState)     :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     type(ESMF_VM)           :: vm
     type(ESMF_Calendar)     :: calendar    ! calendar type
     logical                 :: isPresent   ! is attribute present
@@ -1179,8 +1202,13 @@ contains
                 call ESMF_LogWrite(trim(subname)// ": initializing FBaccum(compid)", ESMF_LOGMSG_INFO)
                 if ( ESMF_FieldBundleIsCreated(is_local%wrap%FBImp(compid,compid)) .and. .not. &
                      ESMF_FieldBundleIsCreated(auxcomp%files(nfcnt)%FBaccum)) then
+                   call med_field_info_array_from_state( &
+                        state = is_local%wrap%NStateImp(compid), &
+                        field_info_array = field_info_array, &
+                        rc = rc)
+                   if (chkerr(rc,__LINE__,u_FILE_u)) return
                    call med_methods_FB_init(auxcomp%files(nfcnt)%FBaccum, is_local%wrap%flds_scalar_name, &
-                        STgeom=is_local%wrap%NStateImp(compid), STflds=is_local%wrap%NStateImp(compid), &
+                        field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compid), &
                         rc=rc)
                    if (chkerr(rc,__LINE__,u_FILE_u)) return
                    call med_methods_FB_reset(auxcomp%files(nfcnt)%FBaccum, czero, rc=rc)
@@ -1769,7 +1797,7 @@ contains
        timediff(1) = nexttime - starttime - ringinterval
        call ESMF_TimeIntervalGet(timediff(2), d_r8=time_bnds(2), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_TimeIntervalGet(timediff(1), d_r8=time_bnds(1), rc=rc)
+       call ESMF_TimeIntervalGet(timediff(1), startTimeIn=starttime, d_r8=time_bnds(1), rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        time_val = 0.5_r8 * (time_bnds(1) + time_bnds(2))
     else

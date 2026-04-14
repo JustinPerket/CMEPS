@@ -37,6 +37,8 @@ module MED
   use med_methods_mod          , only : FB_diagnose        => med_methods_FB_diagnose
   use med_methods_mod          , only : FB_getFieldN       => med_methods_FB_getFieldN
   use med_methods_mod          , only : clock_timeprint    => med_methods_clock_timeprint
+  use med_field_info_mod       , only : med_field_info_type
+  use med_field_info_mod       , only : med_field_info_array_from_names_wtracers, med_field_info_array_from_state
   use med_utils_mod            , only : memcheck           => med_memcheck
   use med_internalstate_mod    , only : InternalState, med_internalstate_init, med_internalstate_coupling
   use med_internalstate_mod    , only : med_internalstate_defaultmasks, logunit, maintask
@@ -52,6 +54,7 @@ module MED
   use esmFldsExchange_hafs_mod , only : esmFldsExchange_hafs
   use med_phases_profile_mod   , only : med_phases_profile_finalize
   use shr_log_mod              , only : shr_log_error
+  use med_ufs_trace_wrapper_mod, only : ufs_trace_init_wrapper, ufs_trace_wrapper, ufs_trace_finalize_wrapper
 
 
   implicit none
@@ -87,6 +90,7 @@ contains
     use ESMF                    , only: ESMF_SUCCESS, ESMF_GridCompSetEntryPoint
     use ESMF                    , only: ESMF_METHOD_INITIALIZE, ESMF_METHOD_RUN
     use ESMF                    , only: ESMF_GridComp, ESMF_MethodRemove
+    use ESMF                    , only: ESMF_VM, ESMF_VMGet, ESMF_GridCompGet
     use NUOPC                   , only: NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize, NUOPC_NoOP
     use NUOPC_Mediator          , only: mediator_routine_SS             => SetServices
     use NUOPC_Mediator          , only: mediator_routine_Run            => routine_Run
@@ -133,12 +137,23 @@ contains
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
 
+    type(ESMF_VM)        :: vm
+    integer              :: localPet
     ! local variables
     character(len=*), parameter :: subname = '('//__FILE__//':SetServices)'
     !-----------------------------------------------------------
 
     rc = ESMF_SUCCESS
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
+
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMGet(vm, localPet=localPet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    maintask = .false.
+    if (localPet == 0) maintask=.true.
+    if (maintask) call ufs_trace_init_wrapper()
+    if (maintask) call ufs_trace_wrapper("cmeps", "SetServices", "B")
 
     !------------------
     ! the NUOPC model component mediator_routine_SS will register the generic methods
@@ -555,6 +570,7 @@ contains
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "SetServices", "E")
   end subroutine SetServices
 
   !-----------------------------------------------------------------------------
@@ -592,6 +608,7 @@ contains
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
+    if (maintask) call ufs_trace_wrapper("cmeps", "InitializeP0", "B")
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, localPet=localPet, rc=rc)
@@ -662,6 +679,8 @@ contains
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "InitializeP0", "E")
+
   end subroutine InitializeP0
 
   !-----------------------------------------------------------------------
@@ -701,6 +720,7 @@ contains
     character(len=*), parameter :: subname = '('//__FILE__//':AdvertiseFields)'
     !-----------------------------------------------------------
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "AdvertiseFields", "B")
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
     if (profile_memory) call ESMF_VMLogMemInfo("Entering "//trim(subname))
@@ -837,7 +857,7 @@ contains
     else if (coupling_mode(1:3) == 'ufs') then
        call esmFldsExchange_ufs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (coupling_mode(1:4) == 'hafs') then
+    else if (trim(coupling_mode) == 'hafs') then
        call esmFldsExchange_hafs(gcomp, phase='advertise', rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
@@ -980,6 +1000,7 @@ contains
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "AdvertiseFields", "E")
   end subroutine AdvertiseFields
 
   !-----------------------------------------------------------------------------
@@ -1006,6 +1027,7 @@ contains
     integer                    :: n
     character(len=*), parameter :: subname = '('//__FILE__//':RealizeFieldsWithTransferProvided)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferProvided", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
@@ -1043,6 +1065,7 @@ contains
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferProvided", "E")
 
   end subroutine RealizeFieldsWithTransferProvided
 
@@ -1067,6 +1090,7 @@ contains
     integer :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':ModifyDecompofMesh)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "ModifyDecompofMesh", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
@@ -1095,6 +1119,7 @@ contains
     enddo
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    if (maintask) call ufs_trace_wrapper("cmeps", "ModifyDecompofMesh", "E")
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1392,6 +1417,7 @@ contains
     integer             :: n1
     character(len=*), parameter :: subname = '('//__FILE__//':RealizeFieldsWithTransferAccept)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferAccept", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
 
@@ -1431,6 +1457,7 @@ contains
 
     if (profile_memory) call ESMF_VMLogMemInfo("Leaving "//trim(subname))
     call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
+    if (maintask) call ufs_trace_wrapper("cmeps", "RealizeFieldsWithTransferAccept", "E")
 
   contains  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1636,6 +1663,7 @@ contains
 
     ! local variables
     type(InternalState)                :: is_local
+    type(med_field_info_type), allocatable :: field_info_array(:)
     type(ESMF_Clock)                   :: clock
     type(ESMF_State)                   :: importState, exportState
     type(ESMF_Time)                    :: time
@@ -1655,6 +1683,7 @@ contains
     character(len=CX)                  :: msgString
     character(len=*), parameter :: subname = '('//__FILE__//':DataInitialize)'
     !-----------------------------------------------------------
+    if (maintask) call ufs_trace_wrapper("cmeps", "DataInitialize", "B")
 
     call ESMF_LogWrite(trim(subname)//": called", ESMF_LOGMSG_INFO)
     rc = ESMF_SUCCESS
@@ -1749,19 +1778,25 @@ contains
                        trim(compname(n1))//'_'//trim(compname(n2))
                end if
 
+               call med_field_info_array_from_state( &
+                    state = is_local%wrap%NStateImp(n1), &
+                    field_info_array = field_info_array, &
+                    rc = rc)
+               if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
                ! Check import FB, if there is no field in it then use export FB
                ! to provide mesh information
                call State_GetNumFields(is_local%wrap%NStateImp(n2), fieldCount, rc=rc)
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
                if (fieldCount == 0) then
                  call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      field_info_array=field_info_array, &
                       STgeom=is_local%wrap%NStateExp(n2), &
-                      STflds=is_local%wrap%NStateImp(n1), &
                       name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
                else
                  call FB_init(is_local%wrap%FBImp(n1,n2), is_local%wrap%flds_scalar_name, &
+                      field_info_array=field_info_array, &
                       STgeom=is_local%wrap%NStateImp(n2), &
-                      STflds=is_local%wrap%NStateImp(n1), &
                       name='FBImp'//trim(compname(n1))//'_'//trim(compname(n2)), rc=rc)
                end if
                if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1789,14 +1824,19 @@ contains
             allocate(fldnames(fieldCount))
             call med_fldList_getfldnames(fldListMed_ocnalb%fields, fldnames, rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+            call med_field_info_array_from_names_wtracers( &
+                 field_names = fldnames, &
+                 field_info_array = field_info_array, &
+                 rc = rc)
+            if (ChkErr(rc,__LINE__,u_FILE_u)) return
             call FB_init(is_local%wrap%FBMed_ocnalb_a, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compatm), fieldnamelist=fldnames, name='FBMed_ocnalb_a', rc=rc)
+                 field_info_array=field_info_array, STgeom=is_local%wrap%NStateImp(compatm), name='FBMed_ocnalb_a', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             if (maintask) then
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_a'
             end if
             call FB_init(is_local%wrap%FBMed_ocnalb_o, is_local%wrap%flds_scalar_name, &
-                 STgeom=is_local%wrap%NStateImp(compocn), fieldnamelist=fldnames, name='FBMed_ocnalb_o', rc=rc)
+                 field_info_array = field_info_array, STgeom=is_local%wrap%NStateImp(compocn), name='FBMed_ocnalb_o', rc=rc)
             if (ChkErr(rc,__LINE__,u_FILE_u)) return
             if (maintask) then
                write(logunit,'(a)') trim(subname)//' initializing FB FBMed_ocnalb_o'
@@ -1842,7 +1882,7 @@ contains
       else if (coupling_mode(1:3) == 'ufs') then
          call esmFldsExchange_ufs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      else if (coupling_mode(1:4) == 'hafs') then
+      else if (trim(coupling_mode) == 'hafs') then
          call esmFldsExchange_hafs(gcomp, phase='initialize', rc=rc)
          if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
@@ -1963,6 +2003,7 @@ contains
       ! the correct timestamps, which also indicates that the actual
       ! data has been transferred reliably, and CMEPS can safely use it.
 
+      if (maintask) call ufs_trace_wrapper("cmeps", "DataInitialize", "E")
       RETURN
 
     endif  ! end first_call if-block
@@ -2254,6 +2295,7 @@ contains
       call ESMF_LogWrite(trim(subname)//": done", ESMF_LOGMSG_INFO)
     endif
 
+    if (maintask) call ufs_trace_wrapper("cmeps", "DataInitialize", "E")
   end subroutine DataInitialize
 
   !-----------------------------------------------------------------------------
