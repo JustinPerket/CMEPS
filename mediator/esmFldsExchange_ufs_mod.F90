@@ -326,7 +326,7 @@ contains
     if (is_local%wrap%comp_present(complnd) .and. is_local%wrap%comp_present(compatm)) then
 
        if (trim(lnd_name) == 'lm4') then
-         allocate(flds(7))
+         allocate(flds(12))
          flds = (/ 'sfrac', 'tref ', 'qref ', 'q    ', 't    ', 'cmm  ', 'chh  ', 'zvfun', &
                    'avsdr', 'avsdf', 'anidr', 'anidf'/)
        else
